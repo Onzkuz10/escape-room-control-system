@@ -19,7 +19,7 @@ export function useRoom(player: boolean) {
         lastMessage = performance.now();
         try {
           const data = JSON.parse(message.data);
-          if (data.type === 'state') setState(data.state);
+          if (data.type === 'state') setState(previous => !previous || data.state.server_time >= previous.server_time ? data.state : previous);
         } catch { setError('Palvelimen viestiä ei voitu lukea.'); }
       };
       socket.onclose = () => {
@@ -40,6 +40,7 @@ export function useRoom(player: boolean) {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : 'Tarkista syötetyt arvot.');
+      setState(previous => !previous || body.server_time >= previous.server_time ? body : previous);
       setError('');
       return true;
     } catch (err) {

@@ -3,6 +3,7 @@ import platform
 import threading
 import time
 import cv2
+from .digit_model import recognizer_available
 
 
 class CameraService:
@@ -82,4 +83,5 @@ class CameraService:
             stale = self.status == 'on' and time.monotonic() - self.frame_at > 2
             return {"status": 'error' if stale else self.status,
                     "message": 'Kamerakuva ei päivity. Käynnistä kamera uudelleen.' if stale else self.message,
-                    "width": shape[1], "height": shape[0]}
+                    "width": shape[1], "height": shape[0],
+                    "ocr_available": recognizer_available()}

@@ -4,7 +4,6 @@ import json
 import logging
 import os
 from pathlib import Path
-import shutil
 import time
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -15,7 +14,9 @@ from .audio import AudioManager
 from .camera import CameraService
 from .events import EventBus
 from .models import Config, Command
+from .digit_model import recognizer_available, MODEL_NAME
 from .recognition import DigitRecognizer, Stabilizer
+from .regions import crop_region
 from .state import GameState
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -83,19 +84,23 @@ async def recognition_loop():
                 regions = list(game.config.regions)
                 started_generation = game.generation
                 last_frame = timestamp
-                def analyze():
-                    height, width = frame.shape[:2]
-                    return [recognizer.recognize(frame[int(r.y*height):int((r.y+r.height)*height), int(r.x*width):int((r.x+r.width)*width)]) for r in regions]
-                observations = await asyncio.to_thread(analyze)
+                observations = await asyncio.gather(*(
+                    asyncio.to_thread(recognizer.recognize,
+                                      crop_region(frame, r),
+                                      diagnostics=True) for r in regions))
                 # Drop in-flight OCR after a reset, calibration, mode switch or camera failure.
-                if started_generation == game.generation and game.mode == 'camera' and camera.info()['status'] == 'on' and time.monotonic() - timestamp < 2:
+                if started_generation == game.generation and game.mode == 'camera' and camera.info()['status'] == 'on':
                     now = time.monotonic()
-                    stable = [s.update(o, now) for s, o in zip(stabilizers, observations)]
-                    fresh = all(o.digit is not None and o.digit == stabilized.digit for o, stabilized in zip(observations, stable))
-                    game.set_digits([o.digit for o in stable], [o.confidence for o in stable], allow_solve=fresh)
+                    game.recognition_diagnostics = [o.diagnostic for o in observations]
+                    game.recognition_at = time.time() - (now - timestamp)
+                    if now - timestamp < 2:
+                        stable = [s.update(o, now) for s, o in zip(stabilizers, observations)]
+                        fresh = all(o.digit is not None and o.digit == stabilized.digit for o, stabilized in zip(observations, stable))
+                        game.set_digits([o.digit for o in stable], [o.confidence for o in stable], allow_solve=fresh)
             elif frame is None and game.phase not in ('solved', 'expired'):
                 stabilizers = [Stabilizer() for _ in range(4)]
-        await asyncio.sleep(.18)
+                game.recognition_diagnostics, game.recognition_at = [None] * 4, None
+        await asyncio.sleep(.05)
 
 
 @asynccontextmanager
@@ -113,7 +118,7 @@ app = FastAPI(title='Escape Room Control — V1', lifespan=lifespan)
 
 @app.get('/api/health')
 async def health():
-    return {'ok': True, 'ocr_available': bool(shutil.which('tesseract')), 'version': '1.0.0'}
+    return {'ok': True, 'ocr_available': recognizer_available(), 'recognition_engine': MODEL_NAME, 'version': '1.0.0'}
 
 
 @app.get('/api/state')
@@ -173,8 +178,6 @@ async def command(cmd: Command):
                 game.clear_detection()
             bus.emit('config.changed', field=action)
         elif action == 'camera_start':
-            if not shutil.which('tesseract'):
-                raise ValueError('Tesseract puuttuu. Asenna macOS:ssä: brew install tesseract')
             index = game.config.camera_index if value is None else value
             if type(index) is not int or not 0 <= index <= 9:
                 raise ValueError('Kameran numero on 0–9.')

@@ -1,112 +1,135 @@
-"""Offline OCR with geometric rejection and time-based stabilization."""
+"""Local handwritten digit recognition with a pretrained MNIST CNN."""
+import base64
 from dataclasses import dataclass
 import cv2
 import numpy as np
-import pytesseract
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from .digit_model import HandwrittenDigitModel, MODEL_NAME, recognizer_available
 
 
 @dataclass(frozen=True)
 class Observation:
     digit: int | None = None
     confidence: float | None = None
+    diagnostic: dict | None = None
 
 
 class DigitRecognizer:
     def __init__(self):
-        self.templates = []
-        assets = Path(__file__).parent / 'assets'
-        fonts = [ImageFont.truetype(str(assets / name), 160) for name in ('DigitSans.ttf', 'DigitSans-Bold.ttf')]
-        for digit in range(10):
-            glyphs = []
-            for font in fonts:
-                image = Image.new('L', (260, 320), 0)
-                ImageDraw.Draw(image).text((130, 155), str(digit), anchor='mm', font=font, fill=255)
-                glyphs.append(np.array(image))
-            for font in (cv2.FONT_HERSHEY_SIMPLEX, cv2.FONT_HERSHEY_DUPLEX):
-                for thickness in (4, 8):
-                    image = np.zeros((240, 200), np.uint8)
-                    cv2.putText(image, str(digit), (30, 180), font, 5, 255, thickness, cv2.LINE_AA)
-                    glyphs.append(image)
-            templates = []
-            for glyph in glyphs:
-                for angle in (-6, 0, 6):
-                    matrix = cv2.getRotationMatrix2D((glyph.shape[1]/2, glyph.shape[0]/2), angle, 1)
-                    rotated = cv2.warpAffine(glyph, matrix, (glyph.shape[1], glyph.shape[0]))
-                    templates.append(self.normalize(rotated))
-            self.templates.append(templates)
+        self.model = HandwrittenDigitModel()
 
     @staticmethod
-    def normalize(ink):
-        points = cv2.findNonZero((ink > 100).astype(np.uint8))
-        if points is None:
-            return np.zeros((64, 64), np.float32)
-        x, y, w, h = cv2.boundingRect(points)
-        scale = 54 / max(h, w)
-        mask = cv2.resize(ink[y:y+h, x:x+w], (max(1, round(w*scale)), max(1, round(h*scale))), interpolation=cv2.INTER_AREA)
-        canvas = np.zeros((64, 64), np.float32)
-        mh, mw = mask.shape
-        canvas[(64-mh)//2:(64-mh)//2+mh, (64-mw)//2:(64-mw)//2+mw] = mask / 255.
-        return canvas
-
-    def match(self, ink):
-        mask = self.normalize(ink)
-        scores = [max(float(2 * np.minimum(mask, template).sum() / (mask.sum() + template.sum() + 1e-6)) for template in variants) for variants in self.templates]
-        order = sorted(range(10), key=lambda i: scores[i], reverse=True)
-        best = order[0]
-        return best, scores[best], scores[best] - scores[order[1]]
-
-    def recognize(self, roi: np.ndarray) -> Observation:
-        if roi.size == 0 or min(roi.shape[:2]) < 40:
-            return Observation()
+    def prepare(roi):
+        """Extract one glyph, fit it into 20x20, and center it in a 28x28 input."""
+        if roi.size == 0 or min(roi.shape[:2]) < 4:
+            return None, 'Rajaus on tyhjä tai liian pieni'
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY) if roi.ndim == 3 else roi
-        if gray.mean() < 85 or cv2.Laplacian(gray, cv2.CV_64F).var() < 20:
-            return Observation()
-        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-        _, ink = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        coverage = np.count_nonzero(ink) / ink.size
-        if not .006 < coverage < .40:
-            return Observation()
-        contours, _ = cv2.findContours(ink, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        if not contours:
-            return Observation()
-        area = cv2.contourArea(contours[0])
-        if area < 50:
-            return Observation()
-        # More than one substantial glyph is not a single digit.
-        if any(cv2.contourArea(c) > max(25, area * .12) for c in contours[1:]):
-            return Observation()
-        x, y, w, h = cv2.boundingRect(contours[0])
-        height, width = gray.shape
-        if h < height * .20 or not .07 < w / h < 1.15:
-            return Observation()
-        # A clipped glyph (or paper edge) must never become an accepted digit.
-        if min(x, y) < 3 or x + w > width - 3 or y + h > height - 3:
-            return Observation()
-        best, score, margin = self.match(ink[y:y+h, x:x+w])
-        # A very strong shape match is useful for isolated digits OCR calls letters.
-        # This does not consult the room's target code.
-        if score >= .84 and margin >= .085:
-            return Observation(best, round(score * 100, 1))
-        if score < .68 or margin < .035:
-            return Observation()
-        glyph = 255 - ink[y:y+h, x:x+w]
-        target_h = 180
-        glyph = cv2.resize(glyph, (max(12, round(w * target_h / h)), target_h), interpolation=cv2.INTER_CUBIC)
-        glyph = cv2.copyMakeBorder(glyph, 35, 35, 45, 45, cv2.BORDER_CONSTANT, value=255)
+        if float(gray.max()) - float(gray.min()) < 3:
+            return None, 'Alue on tasainen; ei luettavaa numeroa'
+        gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+        smooth = cv2.GaussianBlur(gray, (3, 3), 0)
+        _, mask = cv2.threshold(smooth, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        border = np.concatenate((mask[0], mask[-1], mask[:, 0], mask[:, -1]))
+        if np.mean(border) > 127:
+            mask = 255 - mask
+            foreground = gray
+        else:
+            foreground = 255 - gray
+        count, labels, stats, _ = cv2.connectedComponentsWithStats(mask)
+        candidates = []
+        for i in range(1, count):
+            x, y, w, h, area = stats[i]
+            if area < max(5, mask.size * .0003) or h < 5:
+                continue
+            if area > mask.size * .65:
+                continue
+            if (x == 0 or y == 0 or x+w == gray.shape[1] or y+h == gray.shape[0]) and (w > gray.shape[1]*.8 or h > gray.shape[0]*.8):
+                continue
+            candidates.append(i)
+        if not candidates:
+            return None, 'Alueelta ei löytynyt erottuvaa numeroa'
+        candidates.sort(key=lambda i: stats[i, cv2.CC_STAT_AREA], reverse=True)
+        primary = candidates[0]
+        x, y, w, h, area = stats[primary]
+        selected = [primary]
+        for i in candidates[1:]:
+            xx, yy, ww, hh, aa = stats[i]
+            if aa < area * .15:
+                continue
+            overlap = min(x+w, xx+ww) - max(x, xx)
+            if overlap < min(w, ww)*.15:
+                return None, 'Alueella on useita merkkejä; rajaa yksi numero'
+            selected.append(i)
+        ys, xs = np.where(np.isin(labels, selected))
+        x, y, right, bottom = xs.min(), ys.min(), xs.max()+1, ys.max()+1
+        rejection = None
+        if min(x, y) < 2 or right > gray.shape[1]-2 or bottom > gray.shape[0]-2:
+            rejection = 'Numero leikkautuu rajauksen reunaan; suurenna rajausta'
+        # A pair of long, crossing diagonals is a common non-digit distractor.
+        lines = cv2.HoughLinesP(mask[y:bottom, x:right], 1, np.pi/180,
+                                threshold=max(10, int(max(right-x, bottom-y)*.4)),
+                                minLineLength=max(right-x, bottom-y)*.65, maxLineGap=4)
+        diagonal_directions = set()
+        if lines is not None:
+            for x1, y1, x2, y2 in lines[:, 0]:
+                dx, dy = int(x2-x1), int(y2-y1)
+                if dx and .6 < abs(dy/dx) < 1.8:
+                    diagonal_directions.add(1 if dy/dx > 0 else -1)
+        if len(diagonal_directions) == 2:
+            rejection = 'Alueella on risteäviä viivoja numeron sijaan'
+        glyph = foreground[y:bottom, x:right].copy()
+        support = np.isin(labels[y:bottom, x:right], selected).astype(np.uint8)
+        support = cv2.dilate(support, np.ones((3,3), np.uint8))
+        glyph[support == 0] = 0
+        height, width = glyph.shape
+        scale = 20 / max(height, width)
+        glyph = cv2.resize(glyph, (max(1, round(width*scale)), max(1, round(height*scale))), interpolation=cv2.INTER_AREA)
+        canvas = np.zeros((28,28), np.uint8)
+        gh, gw = glyph.shape
+        canvas[(28-gh)//2:(28-gh)//2+gh, (28-gw)//2:(28-gw)//2+gw] = glyph
+        moments = cv2.moments(canvas)
+        if moments['m00']:
+            dx = 13.5 - moments['m10']/moments['m00']
+            dy = 13.5 - moments['m01']/moments['m00']
+            canvas = cv2.warpAffine(canvas, np.float32([[1,0,dx],[0,1,dy]]), (28,28))
+        return canvas, rejection
+
+    def recognize(self, roi: np.ndarray, *, diagnostics=False) -> Observation:
+        details = {'engine': MODEL_NAME, 'ocr_text': None, 'ocr_confidence': None,
+                   'ocr_threshold': 15, 'shape_digit': None, 'shape_confidence': None,
+                   'input_image': None, 'roi_image': None, 'alternatives': []}
+        def result(reason, digit=None, confidence=None):
+            return Observation(digit, confidence, {**details, 'reason': reason})
+        if diagnostics and roi.size and min(roi.shape[:2]) > 0:
+            scale = min(1., 220 / max(roi.shape[:2]))
+            preview = cv2.resize(roi, (max(1, round(roi.shape[1]*scale)), max(1, round(roi.shape[0]*scale))), interpolation=cv2.INTER_AREA)
+            ok, encoded = cv2.imencode('.jpg', preview, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ok:
+                details['roi_image'] = 'data:image/jpeg;base64,' + base64.b64encode(encoded).decode('ascii')
+        if not recognizer_available():
+            return result('Käsialamalli puuttuu tai on vioittunut')
+        image, rejection = self.prepare(roi)
+        if image is None:
+            return result(rejection)
+        if diagnostics:
+            ok, encoded = cv2.imencode('.png', image)
+            if ok:
+                details['input_image'] = 'data:image/png;base64,' + base64.b64encode(encoded).decode('ascii')
         try:
-            data = pytesseract.image_to_data(glyph, config="--psm 13 --oem 3 -c tessedit_char_whitelist=0123456789", output_type=pytesseract.Output.DICT, timeout=2)
-        except (RuntimeError, pytesseract.TesseractError):
-            return Observation()
-        tokens = [(t.strip(), float(c)) for t, c in zip(data['text'], data['conf']) if t.strip()]
-        if len(tokens) != 1:
-            return Observation()
-        text, confidence = tokens[0]
-        if len(text) != 1 or text not in '0123456789' or confidence < 75 or int(text) != best:
-            return Observation()
-        return Observation(best, round(min(confidence, score * 100), 1))
+            probabilities = self.model.predict(image)
+        except cv2.error:
+            return result('Käsialamallin suoritus epäonnistui')
+        order = np.argsort(probabilities)[::-1]
+        best = int(order[0])
+        confidence = round(float(probabilities[best])*100, 1)
+        details.update(ocr_text=str(best), ocr_confidence=confidence,
+                       alternatives=[{'digit': int(i), 'score': round(float(probabilities[i])*100, 1)} for i in order[:3]])
+        if confidence < 15:
+            return result('Mallin pistemäärä jää 15 pisteen alle')
+        if rejection:
+            return result(rejection)
+        if float(probabilities[order[0]] - probabilities[order[1]]) < .05:
+            return result('Mallin kaksi parasta ehdotusta ovat liian lähellä toisiaan')
+        return result('Käsialamallin havainto; odottaa ajallista vakautusta', best, confidence)
 
 
 class Stabilizer:

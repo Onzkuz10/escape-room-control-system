@@ -16,7 +16,7 @@ flowchart LR
   Capture --> MJPEG[MJPEG-kuva]
   MJPEG --> Dashboard[Dashboard /]
   Capture --> ROI[4 rajattua aluetta]
-  ROI --> Recognition[OpenCV-mallit + Tesseract]
+  ROI --> Recognition[MNIST CNN / OpenCV DNN]
   Recognition --> Stabilizer[Ajallinen vakautus]
   Stabilizer --> State[FastAPI / yhteinen pelitila]
   Dashboard -->|HTTP-komennot| State
@@ -55,21 +55,21 @@ runtime/config.json Paikallisesti tallennetut asetukset; ei versionhallintaan
 
 Kamera sijaitsee palvelinta ajavalla Macilla. macOS käyttää OpenCV:n AVFoundation-ajuria. Kameran avaaminen tapahtuu käyttäjän painikkeesta. Pelaajien laite vastaanottaa vain pelitilan; sen selain ei tarvitse kamerakäyttöoikeutta eikä getUserMedia/HTTPS-yhteyttä.
 
-Kuvaus on erillisessä säikeessä; hidas OCR ei pysäytä kameran esikatselua tai ajastinta. Tunnistus lukee aina uusimman kuvan, jotta jono ei kasva. Tunnistus suoritetaan `asyncio.to_thread`-työnä, yleensä noin 2–5 kertaa sekunnissa. Tesseract-aliprosessilla on aikaraja. Kamerakuvia ei tallenneta levylle.
+Kuvaus on erillisessä säikeessä. Neljä aluetta tunnistetaan rinnakkain `asyncio.to_thread`-töinä, ja kierrosten välissä odotetaan 50 ms. ONNX Model Zoon valmiiksi koulutettu MNIST-12 CNN suoritetaan OpenCV DNN:llä paikallisesti CPU:lla. Jokaisella työntekijäsäikeellä on oma verkkoinstanssi. Malli on projektissa ja sen SHA-256 tarkistetaan; käynnistys ei lataa tiedostoja verkosta. Tesseract-aliprosesseja ei enää käytetä.
 
 Jokaisen alueen käsittely:
 
-1. Harmaasävy, sumeuden ja pimeyden hylkäys, Gaussian-suodatus ja Otsu-kynnystys.
-2. Musteen määrän, merkittävien ulkoääriviivojen ja numeron koon tarkistus. Tyhjät alueet, useat merkit ja reunasta leikkautuneet numerot hylätään.
-3. Numeron normalisointi ja vertailu paikallisiin 0–9-malleihin. Mallit kattavat mukana toimitetun fontin, lihavoinnin, OpenCV:n kaksi fonttia ja ±6° kallistuksen. Hyväksyminen vaatii vähintään 84 % muotosamankaltaisuuden ja 8,5 prosenttiyksikön eron seuraavaan ehdokkaaseen.
-4. Rajatapauksissa paikallinen Tesseract (`--psm 13`, numerorajaus) hyväksyy havainnon vain, jos OCR-varmuus on vähintään 75, muotomalli on sama numero, samankaltaisuus vähintään 68 % ja ero seuraavaan vähintään 3,5 prosenttiyksikköä. Vahva muotovertailu voi tunnistaa numeron, jonka OCR lukisi kirjaimena. Näytön varmuusarvo on havaintopisteytys, ei kalibroitu virhetodennäköisyys.
+1. Harmaasävy, kontrastin normalisointi, Otsu-kynnystys ja taustan polariteetin valinta. Tasaiset alueet hylätään.
+2. Yhdistetyt komponentit paikantavat numeron. Taustan laajat reunat ohitetaan ja useat erilliset merkit hylätään. Leikkautuminen ja risteävät viivat merkitään hylkäyssyyksi; niiden mallipisteet voidaan silti näyttää.
+3. Numeron harmaasävyrajaus sovitetaan 20×20-alueeseen, keskitetään massakeskipisteen mukaan 28×28-kuvaan ja skaalataan välille 0–1 (vaalea numero mustalla taustalla).
+4. CNN:n kymmenestä logitista saadaan softmax-pisteet. Raja on 15/100 ja kahden parhaan ehdokkaan eron on oltava vähintään 5 pistettä. Ohjaajalle lähetetään mallin nimi, raakapisteet, kolme ehdokasta, syötekuva ja hylkäyssyy. Vanhat `ocr_*`-kenttänimet säilyvät API-yhteensopivuuden vuoksi; pelaajille diagnostiikkaa ei lähetetä.
 5. Vähintään kolme peräkkäistä samaa havaintoa ja vähintään 0,65 sekunnin vakaus. Ristiriitainen numero poistaa vanhan numeron heti; tyhjä tai epävarma signaali poistaa sen 0,55 sekunnissa. Yli 1,5 sekunnin näytekatko aloittaa vakautuksen uudelleen.
 
 Ratkaisun hyväksyminen kameratilassa vaatii lisäksi, että saman tuoreen kuvan kaikki neljä havaintoa ovat varmoja ja vastaavat vakautettuja numeroita. Lyhyt epävarman signaalin merkkivalon viive ei voi yksin käynnistää voittoa.
 
 Yli kaksi sekuntia vanhaa kamerakuvaa ei käytetä. Kameran sulkeminen tai vika tyhjentää aktiiviset kamerahavainnot. Käynnissä olevan tunnistustyön tulos pudotetaan, jos sen aikana tapahtui nollaus, tilanvaihto tai alueiden muutos. Ratkaistu tila säilytetään nollaukseen asti.
 
-Tunnistuksen tulos ei koskaan riipu oikeasta koodista. V1 on tarkoitettu selkeille mustille painetuille numeroille valkoisella paperilla; vapaata käsialaa, suurta perspektiivivääristymää, heijastusta ja sekavaa taustaa ei luvata tunnistettaviksi. Käytä mukana toimitettuja lappuja ensimmäiseen testiin.
+Tunnistuksen tulos ei koskaan riipu oikeasta koodista. Malli on tarkoitettu yksittäisille käsinkirjoitetuille numeroille. MNIST-testiaineiston tulosta ei pidä tulkita kameratarkkuudeksi: suuri perspektiivivääristymä, heijastukset ja sekava tausta voivat edelleen rikkoa tunnistuksen. MNIST-mallilla ei ole opittua erillistä ei-numeroa-luokkaa; esikäsittely ja vakautus eivät poista kaikkia vääriä havaintoja.
 
 ## Tapahtumat ja laajennukset
 
@@ -88,3 +88,11 @@ Tapahtumissa on järjestysnumero, UTC-aikaleima, tyyppi ja payload. V1 julkaisee
 `AudioManager` tilaa tapahtumaväylän ja valitsee tulevan äänitoiminnon tunnisteen. V1 ei lataa tai soita musiikkia. Vihje- ja automaatiomoduulit voivat myöhemmin tilata saman väylän. Hidas toiminto tulee välittää työjonoon; tapahtumankäsittelijä ei saa estää ajastinta. Kuuntelijan poikkeus ei pysäytä muita kuuntelijoita.
 
 Vihjeiden lisääminen tarkoittaisi uutta validoitua komentoa, ajallisesti rajattua viestiä pelitilaan ja Player-komponenttia. Vaiheisiin reagoiva musiikki voi tilata uuden `stage.changed`-tapahtuman. Näitä ei ole toteutettu V1:een. Tapahtumahistoria ja pelitila ovat muistissa, asetukset levyllä. Tila ja yhteydet eivät jakaudu usealle työntekijälle, joten käytä aina `--workers 1`.
+
+## Rajauksen koordinaatit ja tallennus
+
+Näkyvät kehykset ja kamerakuva käyttävät samaa reunuksetonta, kuvasuhteen säilyttävää pintaa. Pointer-koordinaatit normalisoidaan tämän pinnan mittoihin. Valittu kehys nostetaan muiden päälle, jotta päällekkäinen alue ei peitä koonmuutoskahvaa.
+
+Kehyksen siirto/koonmuutos tallentuu 350 ms vapauttamisen jälkeen; prosenttikentät saman viiveen jälkeen. Keskeneräisen tai epäonnistuneen tallennuksen tila näkyy käyttäjälle. Tallennuspyynnöt sarjoitetaan ja niiden aikana tehdyt uudet muutokset tallentuvat seuraavassa pyynnössä. HTTP-komennon palauttama tilanne otetaan heti käyttöön, eikä vanhempi WebSocket-tilanne saa korvata uudempaa aikaleimaa.
+
+Backend muuntaa normalisoidut koordinaatit alkuperäiseen kamerakuvaan `region_bounds`-funktiolla: vasen/ylä pyöristetään alaspäin, oikea/ala ylöspäin ja rajat pidetään kuvan sisällä. Ohjaajan diagnostiikkaan lisätty `roi_image` näyttää juuri tästä leikkauksesta pienennetyn JPEG-esikatselun ennen numeron irrotusta. `input_image` näyttää erikseen CNN:n 28×28-syötteen.

@@ -46,3 +46,10 @@ Noudata README:n kohtaa **Testi oikeilla numerolapuilla**. Tarkista erikseen:
 6. Erillinen samassa verkossa oleva laite näyttää saman ajan ja merkkivalot.
 
 Fyysisen kameran laatu, valotus, macOS-käyttöoikeudet, paikallisverkon palomuuri ja Safari-fullscreen jäävät laitekohtaisesti tarkistettaviksi. Demoon ei väitetä suoritetun macOS-laitetestiä.
+
+## Windows-rajauksen tarkistus 2026-10-16
+
+- Todellinen ongelma toistettiin: selaimen muokatut kehykset poikkesivat tallennetuista oletusalueista. Näkyvien kehysten tallennuksen jälkeen fyysisen kameran numerot 1, 2, 3, 4 tunnistuivat pistein 98,2 / 99,7 / 99,9 / 100 ja pelitila vaihtui ratkaistuksi.
+- Korjauksen selaintesti ajettiin erillisellä portin 8001 palvelimella ja omalla konfiguraatiolla. Prosenttikenttien muutokset x=20 %, y=30 %, leveys=16 %, korkeus=30 % tallentuivat ilman painiketta. 40×20 pikselin veto vastasi backendillä tarkalleen siirtymää 40/pinnan leveys, 20/pinnan korkeus. 30×20 pikselin kahvaveto muutti valitun alueen leveyttä/korkeutta samalla muunnoksella, myös päällekkäisten alueiden tapauksessa. Tallennettu rajaus säilyi sivun päivityksessä.
+- Pikselitestit tarkistavat rajauksen alku-/loppukoordinaatit 1280×720-, 1920×1080- ja 640×480-kuvilla sekä kuvan viimeisen pikselin mukaanoton.
+- 94 pytest-testiä läpäisi; TypeScript/Vite-build onnistui. Starlette ilmoitti olemassa olevan anyio-deprekaatiovaroituksen.

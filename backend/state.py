@@ -15,7 +15,10 @@ class GameState:
         self.last_tick = clock()
         self.warning_sent = False
         self.generation = 0
-        self.camera = {"status": "off", "message": "Kamera ei ole käytössä", "width": 1280, "height": 720}
+        self.recognition_diagnostics = [None] * 4
+        self.recognition_at = None
+        self.camera = {"status": "off", "message": "Kamera ei ole käytössä", "width": 1280, "height": 720,
+                       "ocr_available": False}
         bus.emit("system.ready")
 
     def tick(self):
@@ -53,6 +56,7 @@ class GameState:
         self.digits, self.confidences = [None] * 4, [None] * 4
         self.warning_sent = False
         self.generation += 1
+        self.recognition_diagnostics, self.recognition_at = [None] * 4, None
         self.bus.emit("game.reset")
 
     def set_digits(self, digits, confidences=None, *, allow_solve=True):
@@ -71,6 +75,7 @@ class GameState:
     def clear_detection(self):
         self.generation += 1
         self.digits, self.confidences = [None] * 4, [None] * 4
+        self.recognition_diagnostics, self.recognition_at = [None] * 4, None
 
     def correct(self):
         return [digit is not None and str(digit) == self.config.code[i] for i, digit in enumerate(self.digits)]
@@ -82,5 +87,6 @@ class GameState:
         if not player:
             result.update(code=self.config.code, regions=[r.model_dump() for r in self.config.regions],
                           confidences=self.confidences, camera=self.camera,
+                          recognition_diagnostics=self.recognition_diagnostics, recognition_at=self.recognition_at,
                           camera_index=self.config.camera_index, events=list(self.bus.history))
         return result

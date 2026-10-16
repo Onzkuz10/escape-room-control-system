@@ -1,13 +1,13 @@
 # LOCK / Escape Room Control System — Version 1
 
-Toimiva paikallinen pakohuoneen ohjausdemo. React + TypeScript + Vite, Python + FastAPI, OpenCV ja paikallinen Tesseract. Ohjauspaneeli, pelaajien näyttö, neljä numerohavaintoa ja ajastin jakavat yhden backend-tilan WebSocketilla. Manuaalinen testitila toimii ilman kameraa.
+Toimiva paikallinen pakohuoneen ohjausdemo. React + TypeScript + Vite, Python + FastAPI, OpenCV ja paikallinen käsinkirjoitettujen numeroiden CNN-malli. Ohjauspaneeli, pelaajien näyttö, neljä numerohavaintoa ja ajastin jakavat yhden backend-tilan WebSocketilla. Manuaalinen testitila toimii ilman kameraa.
 
 ## macOS: ensimmäinen käynnistys
 
-Tarvitset macOS:n, Python 3.11+ (suositus 3.12), Node.js 20.19+ tai 22.12+ ja kameratunnistukseen Tesseractin. Asenna Homebrew tarvittaessa sen virallisesta osoitteesta https://brew.sh, sitten:
+Tarvitset macOS:n, Python 3.11+ (suositus 3.12), Node.js 20.19+ tai 22.12+ ja projektin mukana tulevan ONNX-käsialamallin. Asenna Homebrew tarvittaessa sen virallisesta osoitteesta https://brew.sh, sitten:
 
 ```bash
-brew install python@3.12 node tesseract
+brew install python@3.12 node
 cd /polku/escape-room
 ./scripts/setup.sh
 ./scripts/start.sh
@@ -23,6 +23,14 @@ Avaa:
 Pidä terminaali auki. Lopeta **Ctrl+C**. Seuraavilla kerroilla riittää `./scripts/start.sh`. Projektin `start.command` toimii myös Finderistä kaksoisnapsauttamalla, kun asennus on tehty. Jos macOS ei avaa sitä, käytä terminaalikomentoa.
 
 Toinen portti: `ESCAPE_PORT=8080 ./scripts/start.sh`. Käyttöliittymän muutosten jälkeen suorita `npm run build --prefix frontend` ja käynnistä palvelin uudelleen. Käytä aina yhtä backend-prosessia; useat työntekijät eivät jaa tilaa tai kameraa.
+
+## Windows ja käsinkirjoitettujen numeroiden tunnistus
+
+Tunnistus käyttää valmista **ONNX Model Zoo MNIST-12 CNN** -käsialamallia nykyisen OpenCV:n kautta. Tesseractia, API-avainta, pilvipalvelua tai erillistä ML-ajoympäristöä ei tarvita. Malli ja sen lisenssit sisältyvät projektiin. `/api/health` kertoo kentissä `recognition_engine` ja `ocr_available` käytössä olevan moottorin ja mallin saatavuuden.
+
+Valitse **Kamera** ja rajaa jokaiseen kehykseen yksi kokonainen numero. Malli on koulutettu käsinkirjoitetuille yksittäisille numeroille 0–9. Numerotunnistus näyttää mallin pisteet, kolme parasta ehdotusta sekä esikäsitellyn 28×28-kuvan, jonka malli todella näkee. Pisteet ovat mallin luottamuslukuja, eivät todennäköisyyksiä siitä, että kameratulos on oikea. Hyväksymisraja on 15/100, mutta lähes tasavahvat ehdokkaat ja selvästi virheelliset rajaukset hylätään. Ajallinen vakautus säilyy käytössä.
+
+Käsialavertailu: `.venv\Scripts\python.exe scripts\check_handwriting.py --download`. Se käyttää ensimmäisiä 1 000 alkuperäisen MNIST-testiaineiston käsialanäytettä ja niiden tummennettuja/kallistettuja kopioita. Raportti syntyy `runtime/handwriting-test/report.json`-tiedostoon. Tulos ei mittaa fyysisen kameran tarkkuutta; kuvauskulma, tausta ja käsiala vaikuttavat edelleen.
 
 ## Pelaajien näyttö toisella laitteella
 
@@ -52,20 +60,20 @@ Pysäytä ajastin ennen oikean koodin tai pelin keston muuttamista. Tallenna muu
 2. Aseta laput vaakasuoraan, vasemmalta oikealle. Käytä tasaista hajavaloa, valkoista alustaa ja riittävän isoa mustaa numeroa. Suuntaa kamera suoraan lappuihin. Lappujen järjestys ratkaisee.
 3. Paina **Käynnistä kamera**. Fyysinen kamera avataan palvelinta ajavalla Macilla. Hyväksy käyttöoikeus Terminalille tai käyttämällesi terminaaliohjelmalle.
 4. Jos macOS ei näytä kyselyä tai kuva puuttuu, tarkista **Järjestelmäasetukset → Tietosuoja ja suojaus → Kamera**. Salli terminaaliohjelma, sulje kameraa varaavat ohjelmat ja käynnistä palvelin tarvittaessa uudelleen.
-5. Valitse numerotunnistuksesta **Kamera**. Paina **Säädä alueita**. Vedä jokainen alue yhden numeron ympärille ja muuta kokoa alakulmasta. Rajauksen tulee sisältää kokonainen numero ja valkoista marginaalia, ei viereistä numeroa, teippiä tai paperin reunaa. Säädöt voi tehdä myös prosenttikentillä. Paina **Tallenna alueet**.
+5. Valitse numerotunnistuksesta **Kamera**. Paina **Säädä alueita**. Vedä jokainen alue yhden numeron ympärille ja muuta kokoa alakulmasta. Rajauksen tulee sisältää kokonainen numero ja valkoista marginaalia, ei viereistä numeroa, teippiä tai paperin reunaa. Säädöt voi tehdä myös prosenttikentillä. Rajaukset tallentuvat automaattisesti kehyksen vapauttamisen tai prosenttikentän muokkauksen jälkeen. Tallennuksen tila näkyy kameran alla.
 6. Jos väärä kamera avautuu, sulje kamera, muuta säätöpaneelin **Kameran numero** (0–9) ja avaa uudelleen. Oletus on 0.
 7. Odota noin sekunti vakaata kuvaa. Oikean numeron merkkivalo syttyy vihreäksi. Väärä tunnistettu numero näkyy Dashboardissa keltaisena. Tyhjä, sumea tai epävarma havainto jää odottamaan.
 8. Peitä tai siirrä yksi lappu pois: sen valo sammuu tunnistusviiveen jälkeen. Tee tämä ennen koko koodin ratkaisua, koska ratkaisu lukitaan nollaukseen asti.
 9. Aseta kaikki oikeat numerot paikoilleen. Molemmat näkymät ratkaisevat huoneen.
 
-Kamera ja manuaalinen tila ovat erillisiä: live-kuvan voi pitää päällä manuaalisessa testissä, mutta tällöin vain testisyötteet vaikuttavat numeroihin. Tunnistus käyttää OpenCV:n muotovertailua ja rajatapauksissa Tesseractia. Varmuusprosentti on havaintopisteytys. Selkeä käsiala voi toimia, mutta V1:n dokumentoitu testikohde on painettu numerolappu. Katso tarkat hylkäysrajat [arkkitehtuurista](docs/ARCHITECTURE.md).
+Kamera ja manuaalinen tila ovat erillisiä: live-kuvan voi pitää päällä manuaalisessa testissä, mutta tällöin vain testisyötteet vaikuttavat numeroihin. Tunnistus käyttää paikallista MNIST CNN -käsialamallia. Mallin luottamuspisteet ja syötekuva näkyvät ohjauspaneelissa. Painetut laput ovat edelleen käytettävissä, mutta kameran todellinen tarkkuus on arvioitava käytettävällä käsialalla ja valaistuksella. Katso tarkat hylkäysrajat [arkkitehtuurista](docs/ARCHITECTURE.md).
 
 ## Ylläpito ja vianmääritys
 
 - Tallennetut asetukset ovat `runtime/config.json`: koodi, kesto, rajausalueet ja kameraindeksi. Pelitila ja tapahtumaloki ovat muistissa; uudelleenkäynnistys aloittaa uuden pelin valmiustilassa.
 - Viallinen asetustiedosto aiheuttaa lokimerkinnän ja turvallisten oletusten käytön. Poista tai nimeä `runtime/config.json` uudelleen oletusten palauttamiseksi.
 - Portti varattu: sulje aiempi palvelin tai vaihda `ESCAPE_PORT`.
-- Tesseract puuttuu: `brew install tesseract`, tarkista `tesseract --version`, käynnistä palvelin uudelleen. Manuaalinen tila toimii ilman Tesseractia.
+- Käsialamalli puuttuu tai on vioittunut: palauta `backend/assets/models/mnist-12.onnx` projektista ja käynnistä palvelin uudelleen. Mallin tarkiste ja lähde ovat `backend/assets/models/MODEL.md`-tiedostossa.
 - Numerot eivät tunnistu: tarkista tila, tarkennus, valaistus, rajaus ja musta-valkoinen kontrasti. Rajaa yksi kokonainen merkki kerrallaan. Kokeile toimitettuja numerolappuja.
 - WebSocket katkeaa: käyttöliittymä ilmoittaa yhteyskatkosta ja yhdistää automaattisesti uudelleen. Pelaajan ajastin näyttää viimeisen vastaanotetun ajan katkon aikana. Backend jatkaa ajastinta; yhteyden palauduttua oikea aika palautuu.
 - API:n tila: http://localhost:8000/api/health. Dokumentaatio: http://localhost:8000/docs.

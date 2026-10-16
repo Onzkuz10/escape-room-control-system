@@ -118,6 +118,11 @@ def test_camera_ocr_to_player_success_end_to_end(client, monkeypatch):
         assert result['digits'] == [4,2,7,9]
         assert result['correct'] == [True]*4
         assert 'code' not in result
+        assert 'recognition_diagnostics' not in result
+        diagnostics = client.get('/api/state').json()['recognition_diagnostics']
+        assert all(d['engine'] == 'MNIST CNN (ONNX)' for d in diagnostics)
+        assert all(d['input_image'].startswith('data:image/png;base64,') for d in diagnostics)
+        assert all(d['roi_image'].startswith('data:image/jpeg;base64,') for d in diagnostics)
 
 
 def test_camera_loss_clears_current_digits(client, monkeypatch):
