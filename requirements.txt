@@ -1,5 +1,6 @@
 fastapi==0.115.12
 uvicorn[standard]==0.34.2
 opencv-python==4.11.0.86
+cv2-enumerate-cameras==1.4.0
 numpy==2.2.5
 Pillow==11.2.1

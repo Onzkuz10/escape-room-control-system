@@ -2,11 +2,50 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, ScanLine, SlidersHorizontal, RotateCcw, Move, Maximize2, FileDown } from 'lucide-react';
 import type { Region, RoomState, SendCommand } from './types';
 
+interface CameraDevice { index: number; name: string }
+
 export function CameraPanel({ state, command, disabled }: { state: RoomState; command: SendCommand; disabled: boolean }) {
   const [editing, setEditing] = useState(false);
   const [regions, setRegions] = useState(state.regions);
   const [active, setActive] = useState(0);
   const [index, setIndex] = useState(state.camera_index);
+  const [devices, setDevices] = useState<CameraDevice[]>([]);
+  const [discovering, setDiscovering] = useState(true);
+  const [discoveryError, setDiscoveryError] = useState('');
+  const discoveryPending = useRef(false);
+  const selectedIndex = useRef(index);
+  selectedIndex.current = index;
+  const cameraActive = state.camera.status === 'on' || state.camera.status === 'starting';
+  const activeCamera = useRef(cameraActive);
+  activeCamera.current = cameraActive;
+  const refreshCameras = useCallback(async () => {
+    if (discoveryPending.current) return;
+    discoveryPending.current = true;
+    setDiscovering(true);
+    try {
+      const response = await fetch('/api/cameras', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      if (!response.ok) throw new Error('Kameroiden haku epäonnistui. Tarkista kameran käyttöoikeudet ja päivitä lista.');
+      const data: { devices: CameraDevice[] } = await response.json();
+      setDevices(data.devices);
+      setDiscoveryError('');
+      if (!activeCamera.current && data.devices.length && !data.devices.some(device => device.index === selectedIndex.current)) {
+        setIndex(data.devices[0].index);
+      }
+    } catch (error) {
+      setDiscoveryError(error instanceof Error ? error.message : 'Kameroiden haku epäonnistui. Päivitä lista.');
+    } finally {
+      discoveryPending.current = false;
+      setDiscovering(false);
+    }
+  }, []);
+  useEffect(() => {
+    void refreshCameras();
+    const timer = setInterval(() => { void refreshCameras(); }, 10000);
+    return () => clearInterval(timer);
+  }, [refreshCameras]);
+  useEffect(() => {
+    if (cameraActive) setIndex(state.camera_index);
+  }, [cameraActive, state.camera_index]);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -96,13 +135,22 @@ export function CameraPanel({ state, command, disabled }: { state: RoomState; co
       <div className="frame-caption"><span><ScanLine size={12} />{cameraOn ? `${state.camera.width} × ${state.camera.height}` : 'MANUAALINEN ESIKATSELU'}</span><span>4 TUNNISTUSALUETTA</span></div>
     </div>
     </div>
-    <div className="camera-toolbar"><span className="muted"><span className={`small-dot ${cameraOn ? 'on' : ''}`} />{cameraOn ? 'Kamera yhdistetty' : 'Kamera ei ole käytössä'}</span><div><button className={`button subtle small ${editing ? 'active' : ''}`} onClick={() => setEditing(!editing)} disabled={locked}><SlidersHorizontal size={14} />Säädä alueita</button><button className="button small secondary" onClick={cameraToggle} disabled={disabled || busy}><Camera size={14} />{busy ? 'Odota…' : cameraOn || state.camera.status === 'starting' ? 'Sulje kamera' : 'Käynnistä kamera'}</button></div></div>
+    <div className="camera-picker">
+      <label htmlFor="camera-device">Kamera<select id="camera-device" value={devices.some(device => device.index === index) ? index : ''} disabled={disabled || busy || cameraActive} onChange={event => setIndex(Number(event.target.value))}>
+        {!devices.some(device => device.index === index) && <option value="">{cameraActive ? 'Käytössä oleva kamera' : discovering ? 'Haetaan kameroita…' : 'Ei valittavaa kameraa'}</option>}
+        {devices.map(device => <option key={device.index} value={device.index}>{device.name} ({device.index + 1})</option>)}
+      </select></label>
+      <button className="button small secondary" disabled={discovering || disabled} onClick={() => void refreshCameras()}><RotateCcw size={14} />{discovering ? 'Haetaan…' : 'Päivitä kamerat'}</button>
+    </div>
+    {discoveryError ? <p className="inline-error" role="alert">{discoveryError}</p> : !discovering && !devices.length && <p className="inline-error" role="status">Kameroita ei löytynyt palvelinta ajavalta tietokoneelta. Kytke kamera ja päivitä lista. Macissa salli terminaaliohjelman kameran käyttö Järjestelmäasetukset → Tietosuoja ja suojaus → Kamera.</p>}
+    {cameraActive && <p className="camera-selection-help">Sulje kamera ennen toisen kameran valitsemista.</p>}
+    <div className="camera-toolbar"><span className="muted"><span className={`small-dot ${cameraOn ? 'on' : ''}`} />{cameraOn ? 'Kamera yhdistetty' : 'Kamera ei ole käytössä'}</span><div><button className={`button subtle small ${editing ? 'active' : ''}`} onClick={() => setEditing(!editing)} disabled={locked}><SlidersHorizontal size={14} />Säädä alueita</button><button className="button small secondary" onClick={cameraToggle} disabled={disabled || busy || (!cameraActive && (!devices.some(device => device.index === index) || !!discoveryError))}><Camera size={14} />{busy ? 'Odota…' : cameraActive ? 'Sulje kamera' : 'Käynnistä kamera'}</button></div></div>
     {(editing || dirty || saving || saveError) && <p className={`crop-save-status ${saveError ? 'error' : ''}`} role={saveError ? 'alert' : 'status'}>{saveError ? 'Rajauksen tallennus epäonnistui. Tunnistus käyttää aiempia alueita. Yritä uudelleen Tallenna nyt -painikkeella.' : saving ? 'Rajauksia tallennetaan tunnistukseen…' : dirty ? dragging ? 'Rajaus muuttuu. Tunnistus päivittyy, kun vapautat kehyksen.' : 'Rajaukset ovat muuttuneet; automaattinen tallennus odottaa.' : 'Rajaukset tallennettu. Näkyvät kehykset ovat tunnistuksen käytössä.'}</p>}
     {!state.camera.ocr_available && <p className="inline-error">Käsialamalli puuttuu tai on vioittunut. Kamerakuva toimii, mutta numerotunnistus ei ole käytettävissä.</p>}
     {state.camera.status === 'error' && <p className="inline-error">{state.camera.message}</p>}
     {editing && <div className="calibration"><div className="calibration-top"><p>Vedä aluetta tai sen alakulmaa. Muutokset tallentuvat automaattisesti vapauttamisen jälkeen.</p><button className="icon-button" title="Palauta tallennetut alueet" aria-label="Palauta tallennetut alueet" disabled={saving} onClick={() => { draft.current = state.regions; setRegions(state.regions); setDirty(false); setSaveError(false); }}><RotateCcw size={15} /></button></div>
       <div className="calibration-fields"><label>Alue<select value={active} onChange={e => setActive(Number(e.target.value))}>{regions.map((_, i) => <option key={i} value={i}>0{i + 1}</option>)}</select></label>{(['x', 'y', 'width', 'height'] as const).map(key => <label key={key}>{({ x: 'X %', y: 'Y %', width: 'Leveys %', height: 'Korkeus %' })[key]}<input type="number" min={0} max={100} step={.1} value={Number((regions[active][key] * 100).toFixed(1))} onChange={e => update(key, Number(e.target.value))} /></label>)}</div>
-      <div className="calibration-bottom"><label className="camera-index">Kameran numero <input aria-label="Kameran numero" type="number" min={0} max={9} value={index} onChange={e => setIndex(Number(e.target.value))} /></label><button className="button primary small" disabled={locked || !dirty || saving} onClick={() => void save(true)}>{saving ? 'Tallennetaan…' : dirty ? 'Tallenna nyt' : 'Alueet tallennettu'}</button></div>
+      <div className="calibration-bottom"><button className="button primary small" disabled={locked || !dirty || saving} onClick={() => void save(true)}>{saving ? 'Tallennetaan…' : dirty ? 'Tallenna nyt' : 'Alueet tallennettu'}</button></div>
     </div>}
     <div className="camera-footnote"><span>Rajaa jokaiseen kehykseen yksi numero · musta numero valkoisella paperilla</span><a href="/printables/numerolaput.html" target="_blank" rel="noreferrer"><FileDown size={12} />Tulosta laput</a></div>
   </section>;

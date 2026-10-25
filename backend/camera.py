@@ -1,9 +1,9 @@
 """One native camera owner; capture thread is independent of expensive OCR."""
-import platform
 import threading
 import time
 import cv2
 from .digit_model import recognizer_available
+from .camera_devices import capture_backend
 
 
 class CameraService:
@@ -21,7 +21,10 @@ class CameraService:
         if self.thread and self.thread.is_alive():
             if self.stop_event.is_set():
                 raise ValueError('Kamera sulkeutuu vielä. Yritä hetken kuluttua uudelleen.')
+            if index != self.index:
+                raise ValueError('Sulje nykyinen kamera ennen kameran vaihtamista.')
             return
+        self.index = index
         self.stop_event.clear()
         self.frame, self.jpeg, self.frame_at = None, None, 0.
         self.status, self.message = 'starting', 'Kameraa avataan…'
@@ -29,11 +32,11 @@ class CameraService:
         self.thread.start()
 
     def _capture(self, index):
-        api = cv2.CAP_AVFOUNDATION if platform.system() == 'Darwin' else cv2.CAP_ANY
-        cap = cv2.VideoCapture(index, api)
+        cap = None
         try:
+            cap = cv2.VideoCapture(index, capture_backend())
             if not cap.isOpened():
-                self.status, self.message = 'error', 'Kameraa ei voitu avata. Tarkista kameran numero ja käyttöoikeus.'
+                self.status, self.message = 'error', 'Kameraa ei voitu avata. Tarkista käyttöoikeus, sulje muut kameraa käyttävät ohjelmat ja päivitä kameralista. Mac: Järjestelmäasetukset → Tietosuoja ja suojaus → Kamera; salli terminaaliohjelma.'
                 return
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -53,7 +56,8 @@ class CameraService:
         except Exception:
             self.status, self.message = 'error', 'Kameran lukeminen epäonnistui.'
         finally:
-            cap.release()
+            if cap is not None:
+                cap.release()
             if self.stop_event.is_set():
                 self.status, self.message = 'off', 'Kamera ei ole käytössä'
             with self.lock:

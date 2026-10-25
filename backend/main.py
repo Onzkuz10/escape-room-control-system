@@ -5,28 +5,40 @@ import logging
 import os
 from pathlib import Path
 import time
+from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from .audio import AudioManager
 from .camera import CameraService
+from .camera_devices import camera_devices
 from .events import EventBus
 from .models import Config, Command
 from .digit_model import recognizer_available, MODEL_NAME
 from .recognition import DigitRecognizer, Stabilizer
 from .regions import crop_region
 from .state import GameState
+from .settings_bundle import export_bundle, import_bundle, media_paths, MAX_BUNDLE_SIZE
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = Path(os.environ.get('ESCAPE_CONFIG', ROOT / 'runtime' / 'config.json'))
+MEDIA_DIR = Path(os.environ.get('ESCAPE_MEDIA', ROOT / 'runtime' / 'media'))
+MEDIA_TYPES = {'.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
+               '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm',
+               '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
+MAX_MEDIA_SIZE = 80 * 1024 * 1024
 
 
 def load_config():
     if CONFIG_FILE.exists():
         try:
-            return Config.model_validate_json(CONFIG_FILE.read_text())
+            try:
+                text = CONFIG_FILE.read_text(encoding='utf-8')
+            except UnicodeDecodeError:
+                text = CONFIG_FILE.read_text(encoding='cp1252')  # Older Windows saves.
+            return Config.model_validate_json(text)
         except (ValueError, OSError):
             logging.exception('Invalid config; using safe defaults')
     return Config()
@@ -42,7 +54,7 @@ clients: dict[WebSocket, bool] = {}
 def save_config(config):
     CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = CONFIG_FILE.with_suffix('.tmp')
-    tmp.write_text(config.model_dump_json(indent=2))
+    tmp.write_text(config.model_dump_json(indent=2), encoding='utf-8')
     tmp.replace(CONFIG_FILE)
 
 
@@ -127,16 +139,129 @@ async def state():
     return game.snapshot()
 
 
+@app.get('/api/cameras')
+def cameras():
+    # A sync route runs native discovery in FastAPI's thread pool, not the game loop.
+    try:
+        return {'devices': camera_devices()}
+    except Exception as exc:
+        logging.exception('Camera discovery failed')
+        raise HTTPException(503, 'Kameroiden haku epäonnistui. Tarkista asennus ja kameran käyttöoikeudet, ja yritä uudelleen.') from exc
+
+
+@app.get('/api/settings/export')
+async def export_settings():
+    try:
+        data = await asyncio.to_thread(export_bundle, game.config.model_copy(deep=True), MEDIA_DIR)
+        return Response(data, media_type='application/zip', headers={
+            'Content-Disposition': 'attachment; filename="pakohuone-asetukset.zip"', 'Cache-Control': 'no-store'})
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post('/api/settings/import')
+async def import_settings(request: Request):
+    if game.phase not in ('ready', 'pregame'):
+        raise HTTPException(400, 'Tuo asetukset ennen pelin käynnistämistä.')
+    payload = bytearray()
+    async for chunk in request.stream():
+        if len(payload) + len(chunk) > MAX_BUNDLE_SIZE:
+            raise HTTPException(413, 'Asetuspaketin enimmäiskoko on 512 Mt.')
+        payload.extend(chunk)
+    created = []
+    try:
+        config, created = await asyncio.to_thread(import_bundle, bytes(payload), MEDIA_DIR)
+        if any(slide.locked for slide in game.config.presentation.slides) and not any(slide.locked for slide in config.presentation.slides):
+            raise ValueError('Asetuspaketin on sisällettävä lukittu pöytä- ja valonauhaohje.')
+        if game.phase not in ('ready', 'pregame'):
+            raise ValueError('Peli käynnistyi tuonnin aikana. Asetuksia ei muutettu.')
+        await asyncio.to_thread(camera.stop)
+        if game.phase not in ('ready', 'pregame'):
+            raise ValueError('Peli käynnistyi tuonnin aikana. Asetuksia ei muutettu.')
+        save_config(config)
+        game.config = config
+        game.reset()
+        bus.emit('config.changed', field='import')
+        return game.snapshot()
+    except Exception as exc:
+        for path in created:
+            path.unlink(missing_ok=True)
+        if isinstance(exc, (ValueError, ValidationError)):
+            raise HTTPException(400, str(exc)) from exc
+        if isinstance(exc, OSError):
+            raise HTTPException(500, 'Asetusten tuonti epäonnistui. Tarkista runtime-kansion kirjoitusoikeus.') from exc
+        raise
+
+
 @app.post('/api/command')
 async def command(cmd: Command):
     try:
         action, value = cmd.action, cmd.value
         if action == 'start':
             game.start()
+        elif action == 'pregame':
+            game.pregame()
+        elif action in ('next_slide', 'previous_slide'):
+            game.change_slide(1 if action == 'next_slide' else -1)
+        elif action == 'next_view':
+            game.next_view()
+        elif action == 'previous_view':
+            game.previous_view()
+        elif action == 'audio_settings':
+            if not isinstance(value, dict) or not value or set(value) - {'volume', 'muted'}:
+                raise ValueError('Anna äänenvoimakkuus tai mykistys.')
+            if ('volume' in value and type(value['volume']) not in (int, float)) or ('muted' in value and type(value['muted']) is not bool):
+                raise ValueError('Virheellinen ääniasetus.')
+            config = Config.model_validate({**game.config.model_dump(), 'presentation': {**game.config.presentation.model_dump(), **value}})
+            save_config(config)
+            game.config = config
+        elif action == 'victory_sound':
+            config = Config.model_validate({**game.config.model_dump(), 'presentation': {**game.config.presentation.model_dump(), 'victory_sound': value}})
+            if value and not (MEDIA_DIR / Path(value).name).is_file():
+                raise ValueError('Äänitiedosto puuttuu. Lisää ääni uudelleen.')
+            save_config(config)
+            game.config = config
+        elif action == 'game_settings':
+            if game.phase not in ('ready', 'pregame'):
+                raise ValueError('Muuta peliasetuksia ennen pelin käynnistämistä.')
+            if not isinstance(value, dict) or set(value) - {'code', 'duration_seconds', 'require_human_approval'}:
+                raise ValueError('Tuntematon peliasetus.')
+            config = Config.model_validate({**game.config.model_dump(), **value})
+            save_config(config)
+            game.config = config
+            game.remaining = float(config.duration_seconds)
+            game.clear_detection()
+            bus.emit('config.changed', field='game_settings')
+        elif action == 'presentation':
+            if game.phase not in ('ready', 'pregame'):
+                raise ValueError('Muokkaa esitystä ennen pelin käynnistämistä.')
+            config = Config.model_validate({**game.config.model_dump(), 'presentation': value})
+            if any(slide.locked for slide in game.config.presentation.slides) and not any(slide.locked for slide in config.presentation.slides):
+                raise ValueError('Lukittua pöytä- ja valonauhaohjetta ei voi poistaa.')
+            paths = media_paths(config)
+            if any(path and not (MEDIA_DIR / Path(path).name).is_file() for path in paths):
+                raise ValueError('Mediatiedosto puuttuu. Lataa tiedosto uudelleen.')
+            save_config(config)
+            game.config = config
+            game.slide_index = min(game.slide_index, len(config.presentation.slides) - 1)
+            bus.emit('config.changed', field='presentation')
         elif action == 'pause':
             game.pause()
         elif action == 'reset':
             game.reset()
+        elif action == 'approve_solution':
+            game.approve_solution()
+        elif action == 'require_human_approval':
+            if game.phase in ('solved', 'expired'):
+                raise ValueError('Nollaa huone ennen tarkistustavan muuttamista.')
+            if type(value) is not bool:
+                raise ValueError('Tarkistusvalinnan pitää olla tosi tai epätosi.')
+            config = Config.model_validate({**game.config.model_dump(), 'require_human_approval': value})
+            save_config(config)
+            game.config = config
+            bus.emit('config.changed', field='require_human_approval')
+            if not value and game.mode == 'manual':
+                game.set_digits(game.digits)
         elif action in ('mode', 'code', 'duration', 'regions', 'digits', 'digit', 'simulate') and game.phase in ('solved', 'expired'):
             raise ValueError('Nollaa huone ennen asetusten tai numeroiden muuttamista.')
         elif action == 'mode':
@@ -164,6 +289,8 @@ async def command(cmd: Command):
             game.mode = 'manual'
             game.clear_detection()
             bus.emit('game.simulated')
+            game.start()
+            game.game_view = 'digits'
             game.set_digits([int(d) for d in game.config.code])
         elif action in ('code', 'duration', 'regions'):
             if action in ('code', 'duration') and game.running:
@@ -179,9 +306,13 @@ async def command(cmd: Command):
             bus.emit('config.changed', field=action)
         elif action == 'camera_start':
             index = game.config.camera_index if value is None else value
-            if type(index) is not int or not 0 <= index <= 9:
-                raise ValueError('Kameran numero on 0–9.')
+            if type(index) is not int or index < 0:
+                raise ValueError('Valitse kamera luettelosta.')
+            if index not in [device['index'] for device in await asyncio.to_thread(camera_devices)]:
+                raise ValueError('Valittua kameraa ei enää löydy. Päivitä kameralista ja valitse kamera uudelleen.')
             config = Config.model_validate({**game.config.model_dump(), 'camera_index': index})
+            if camera.info()['status'] in ('on', 'starting') and index != game.config.camera_index:
+                raise ValueError('Sulje nykyinen kamera ennen kameran vaihtamista.')
             save_config(config)
             camera.start(index)
             game.config = config
@@ -212,6 +343,78 @@ async def websocket(ws: WebSocket):
         pass
     finally:
         clients.pop(ws, None)
+
+
+@app.post('/api/media')
+async def upload_media(request: Request, filename: str):
+    suffix = Path(filename).suffix.lower()
+    if suffix not in MEDIA_TYPES:
+        raise HTTPException(400, 'Valitse MP3, WAV, OGG, M4A, GIF, MP4, WebM tai kuvatiedosto.')
+    if game.phase not in ('ready', 'pregame'):
+        raise HTTPException(400, 'Lataa media ennen pelin käynnistämistä.')
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    name = uuid4().hex + suffix
+    target = MEDIA_DIR / name
+    size = 0
+    try:
+        with target.open('wb') as stream:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_MEDIA_SIZE:
+                    raise HTTPException(413, 'Tiedoston enimmäiskoko on 80 Mt.')
+                stream.write(chunk)
+        if size == 0:
+            raise HTTPException(400, 'Tiedosto on tyhjä.')
+    except BaseException:
+        target.unlink(missing_ok=True)
+        raise
+    return {'url': f'/media/{name}'}
+
+
+@app.post('/api/victory-sounds')
+async def upload_victory_sound(request: Request, filename: str, duration_seconds: float = Query(default=4, ge=.1, le=30)):
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ('.mp3', '.wav', '.ogg', '.m4a'):
+        raise HTTPException(400, 'Valitse MP3-, WAV-, OGG- tai M4A-äänitiedosto.')
+    if len(game.config.presentation.victory_sounds) >= 4:
+        raise HTTPException(400, 'Neljä äänivaihtoehtoa on jo lisätty.')
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    name = uuid4().hex + suffix
+    target = MEDIA_DIR / name
+    size = 0
+    try:
+        with target.open('wb') as stream:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > MAX_MEDIA_SIZE:
+                    raise HTTPException(413, 'Äänitiedoston enimmäiskoko on 80 Mt.')
+                stream.write(chunk)
+        if not size:
+            raise HTTPException(400, 'Äänitiedosto on tyhjä.')
+        presentation = game.config.presentation.model_dump()
+        presentation['victory_sounds'].append({'name': f'Vaihtoehto {len(presentation["victory_sounds"]) + 1}', 'file': f'/media/{name}', 'duration_seconds': duration_seconds})
+        config = Config.model_validate({**game.config.model_dump(), 'presentation': presentation})
+        save_config(config)
+        game.config = config
+        return game.snapshot()
+    except BaseException as exc:
+        target.unlink(missing_ok=True)
+        if isinstance(exc, ValueError):
+            raise HTTPException(400, str(exc)) from exc
+        if isinstance(exc, OSError):
+            raise HTTPException(500, 'Äänen tallennus epäonnistui. Tarkista runtime-kansion kirjoitusoikeus.') from exc
+        raise
+
+
+@app.get('/media/{filename}')
+async def media(filename: str):
+    import re
+    if not re.fullmatch(r'[a-f0-9]{32}\.[a-z0-9]+', filename):
+        raise HTTPException(404, 'Tiedostoa ei löydy.')
+    target = MEDIA_DIR / filename
+    if target.suffix not in MEDIA_TYPES or not target.is_file():
+        raise HTTPException(404, 'Tiedostoa ei löydy.')
+    return FileResponse(target, media_type=MEDIA_TYPES[target.suffix], headers={'X-Content-Type-Options': 'nosniff'})
 
 
 @app.get('/api/camera/stream')

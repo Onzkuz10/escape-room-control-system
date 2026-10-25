@@ -1,18 +1,27 @@
-import { Check, LockKeyhole } from 'lucide-react';
 import type { RoomState } from './types';
-import { formatTime } from './types';
+import { SlideMedia } from './PresentationPanel';
+import { GameTimer, timerStage } from './GameTimer';
+import { ResultScreen } from './ResultScreen';
+import { IntroSequence } from './IntroSequence';
+import { CodeSlide } from './CodeSlide';
 
 export function Player({ state, connected }: { state: RoomState; connected: boolean }) {
   const solved = state.phase === 'solved', expired = state.phase === 'expired';
-  return <main className={`player-display ${solved ? 'is-solved' : ''} ${expired ? 'is-expired' : ''}`} onDoubleClick={() => { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void document.documentElement.requestFullscreen?.().catch(() => {}); }}>
-    <div className="player-grid" /><div className="player-orbit orbit-1" /><div className="player-orbit orbit-2" />
-    <header className="player-header"><span><LockKeyhole size={17} />LOCK /</span><span>HUONE 01</span></header>
-    <div className="player-content"><div className="player-eyebrow">{solved ? 'PROTOKOLLA AVATTU' : expired ? 'YHTEYS SULJETTU' : 'PAKO ON VAIN AJAN KYSYMYS'}</div>
-      {solved ? <div className="success-story" role="status"><div className="success-emblem"><Check size={54} strokeWidth={1.5} /><span /></div><h1>Reitti on auki<span>.</span></h1><p>Ratkaisitte koodin. Vapaus odottaa.</p><div className="success-time">AIKAA JÄI <strong>{formatTime(state.remaining_seconds)}</strong></div></div> : <><div className="player-countdown" aria-label={`Aikaa jäljellä ${formatTime(state.remaining_seconds)}`}>{formatTime(state.remaining_seconds)}</div><div className="player-timer-label">{expired ? 'AIKA ON LOPPUNUT' : 'AIKAA JÄLJELLÄ'}</div></>}
-      <div className="player-indicators" aria-label="Koodin merkkivalot">{state.digits.map((digit, i) => <div className={`player-indicator ${state.correct[i] ? 'correct' : ''}`} key={i}><span className="player-slot">0{i + 1}</span><div className="player-lamp"><span>{digit ?? '–'}</span>{state.correct[i] && <Check size={18} />}</div><span className="lamp-label">{state.correct[i] ? 'AVATTU' : 'LUKITTU'}</span></div>)}</div>
-      <p className="player-instruction">{solved ? 'NELJÄ NUMEROA. YKSI YHTEINEN RATKAISU.' : expired ? 'Jokaisella tarinalla on loppunsa.' : 'Löydä numerot. Aseta ne oikeaan järjestykseen.'}</p>
-    </div><footer className="player-footer"><span>04 LUKKOA <i /> 01 REITTI ULOS</span><span className="player-footer-line" /><span>{solved ? 'VAPAUS SAAVUTETTU' : 'RATKAISU ON TEIDÄN KÄSISSÄNNE'}</span></footer>
+  const pregame = state.phase === 'pregame', ready = state.phase === 'ready';
+  const numbers = state.game_view === 'digits';
+  const slide = state.presentation.slides[state.slide_index];
+  return <main className={`player-display ${state.running || state.phase === 'paused' ? timerStage(state.remaining_seconds) : ''} ${ready ? 'is-ready' : ''} ${solved ? 'is-solved' : ''} ${expired ? 'is-expired' : ''} ${numbers ? 'view-digits' : 'view-timer'} ${pregame || ready ? 'is-pregame' : ''}`} onDoubleClick={() => { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void document.documentElement.requestFullscreen?.().catch(() => {}); }}>
+    {solved || expired ? <ResultScreen key={`${state.phase}-${state.result_video_playing}`} won={solved} seconds={state.remaining_seconds} duration={state.duration_seconds} digits={state.solution_digits ?? state.digits.map(value => value ?? 0)} elapsed={state.result_at == null ? 5 : Math.max(0, state.server_time - state.result_at)} video={state.result_video_playing ? solved ? state.presentation.victory_video : state.presentation.defeat_video : null} /> : ready ? <p className="player-waiting">odotetaan seuraavan pelin käynnistystä...</p> : pregame && (slide.layout === 'seating' || slide.layout === 'movement') ? <IntroSequence slide={slide} /> : pregame && slide.layout === 'code' ? <CodeSlide key={state.slide_index} slide={slide} /> : pregame ? <div className="pregame-slide" key={`${state.slide_index}-${slide.media}-${slide.animation}`}>
+      {slide.media && <SlideMedia key={slide.media} src={slide.media} title={slide.title} />}
+      <div className={`slide-copy animation-${slide.animation}`}><h1>{slide.title}</h1><p>{slide.body}</p></div>
+      <div className="slide-dots" aria-label={`Dia ${state.slide_index + 1} / ${state.presentation.slides.length}`}>{state.presentation.slides.map((_, i) => <i key={i} className={i === state.slide_index ? 'active' : ''} />)}</div>
+    </div> : <div className="player-content">
+      <GameTimer seconds={state.remaining_seconds} running={state.running} className="player-countdown" />
+      <div className="player-timer-label">{state.phase === 'paused' ? 'AJASTIN PYSÄYTETTY' : 'AIKAA JÄLJELLÄ'}</div>
+      <div className="player-indicators" aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}><span className="player-slot">0{i + 1}</span><div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
+      {numbers && <p className="player-instruction">Aseta numerot oikeaan järjestykseen.</p>}
+    </div>}
     {!connected && <div className="player-connection" role="status">Yhteys palautuu…</div>}
-    {solved && <div className="success-particles" aria-hidden="true">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ left: `${(i * 43) % 100}%`, animationDelay: `${i * .11}s`, animationDuration: `${3 + i % 4}s` }} />)}</div>}
+
   </main>;
 }

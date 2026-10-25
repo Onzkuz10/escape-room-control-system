@@ -53,3 +53,78 @@ Fyysisen kameran laatu, valotus, macOS-käyttöoikeudet, paikallisverkon palomuu
 - Korjauksen selaintesti ajettiin erillisellä portin 8001 palvelimella ja omalla konfiguraatiolla. Prosenttikenttien muutokset x=20 %, y=30 %, leveys=16 %, korkeus=30 % tallentuivat ilman painiketta. 40×20 pikselin veto vastasi backendillä tarkalleen siirtymää 40/pinnan leveys, 20/pinnan korkeus. 30×20 pikselin kahvaveto muutti valitun alueen leveyttä/korkeutta samalla muunnoksella, myös päällekkäisten alueiden tapauksessa. Tallennettu rajaus säilyi sivun päivityksessä.
 - Pikselitestit tarkistavat rajauksen alku-/loppukoordinaatit 1280×720-, 1920×1080- ja 640×480-kuvilla sekä kuvan viimeisen pikselin mukaanoton.
 - 94 pytest-testiä läpäisi; TypeScript/Vite-build onnistui. Starlette ilmoitti olemassa olevan anyio-deprekaatiovaroituksen.
+
+
+## Pre-game, media ja pelinäkymät — 22.10.2026
+
+- Windows: `npm run build --prefix frontend` läpäisty ja 98 pytest-testiä läpäisty. Uudet tarkistukset kattavat pre-gamen kuluttamattoman peliajan, diojen rajat, näkymien vaihdon, automaattisen ratkaisun portituksen numeronäkymään, pelaajan tilannekuvan oikeellisuustietojen piilottamisen ajastinnäkymässä, median latauksen ja validoinnin sekä esityksen tallentumisen ja uudelleenyhdistämisen.
+- Paikallisessa selaimessa erillisellä portin 8011 testipalvelimella varmistettu: pre-game → seuraava dia → Start game → iso valkoinen ajastin → pienet neutraalit numerot → Seuraava näkymä → suuret numerot → automaattinen onnistuminen.
+- Tiedostovalitsimesta ladattu WAV-testitiedosto molempiin musiikkivalintoihin sekä kuva diaan. WAV sisälsi vain hiljaisuutta eikä ole sovelluksen musiikkia. Tallentaminen ja sivun uudelleenlataus säilyttivät tiedostovalinnat.
+- Selaimen audioelementistä varmistettu toiston käynnistyminen aktivoinnista, raidan vaihtuminen pelin alussa, tauotus ja jatkuminen. Käyttäjän omien lopullisten musiikki- ja videotiedostojen toisto tulee varmistaa käytettävällä pelaajien laitteella.
+- Lopullinen ajastinnäkymä mahtui 1280 × 720 -ikkunaan ilman pysty- tai vaakavieritystä. Fyysistä kameraa tai kaiuttimien ääntä ei arvioitu tässä testissä.
+- `tests/browser_smoke.py` päivitetty uuteen pre-game- ja numeronäkymän kulkuun. Tässä muutoksessa selaintarkistukset tehtiin selainohjaimella; koko erillistä smoke-skriptiä ei ajettu.
+
+## Kameraluettelo ja edellinen näkymä — 25.10.2026
+
+- Windows: 107 pytest-testiä läpäisty ja TypeScript/Vite-build onnistui. Testit kattavat kameraluettelon, Windowsin/MSMF:n ja macOS:n/AVFoundationin rajapintavalinnan, yli yhdeksän kameraindeksin tuen, irrotetun kameran hylkäyksen, haun virhetilan sekä edelliseen näkymään palaamisen ajastinta ja numeroita nollaamatta.
+- Localhostin portissa 8000 varmistettu toimiva health-vastaus ja selaimessa automaattisesti löytyvä Camo-kamera nimellisessä valikossa. Luettelointi ei avaa kameraa. Fyysistä kamerakuvaa tai Mac-laitetta ei testattu; macOS:n rajapintavalinta tarkistettiin testikaksoisella.
+- Päivitetty asennus tarvitsee `./scripts/setup.sh`-ajon Macilla ennen käynnistystä. Riippuvuuden macOS-asennus sisältää AVFoundationin Python-sidokset.
+
+## Ohjauskeskus, loppunäkymät ja ohjaajan hyväksyntä — 25.10.2026
+
+- Pelin käynnistys, tauotus, jatkaminen, näkymänvaihto ja nollaus ovat yhdessä ohjausrivissä. Kameran asetukset avataan tarvittaessa. Simulointipainike on poistettu.
+- Pelaajien näytöltä poistettu ylä- ja alatunnisteet sekä ääniohjaimet. Valmiustilassa on musta tausta ja pieni harmaa odotusteksti. Äänentoisto on ohjauskeskuksessa; sen toiminta tarkistettiin selaimen audioelementin toistotilasta.
+- Erillisen portin 8011 testipalvelimella tarkistettu 5 minuutin lämmin korostus, 3 minuutin punainen tärinä ja viimeisen minuutin päivittyvät millisekunnit. Pelaajien näkymä mahtui 1280 × 720 -ikkunaan.
+- Testivideoilla tarkistettu sekä voitto- että häviövideon automaattinen käynnistys, toisto loppuun kerran, pelaajan videon mykistys ja äänen toisto ohjauskeskuksessa. Lopetusvideoiden tiedostovalinnat validoidaan ja tallennetaan esitysasetuksiin.
+- Pöytäasettelussa tarkistettu neljä pöytää, 24 porrastetusti ilmestyvää paikkaa ja vierityksetön projektorinäkymä.
+- Ihmisen tarkistusvaatimus estää automaattisen ratkaisun. Hätähyväksyntä kysyy vahvistuksen ja käynnistää voittovideon myös puuttuvilla kamerahavainnoilla. Aikarajan päättymisen jälkeen hyväksyntä hylätään. Kytkin säilyy nollauksen ja palvelimen uudelleenkäynnistyksen yli.
+- 111 pytest-testiä läpäisty. TypeScript/Vite-build läpäisty. Selaintarkistukset tehtiin selainohjaimella; koko erillistä smoke-skriptiä ei ajettu.
+
+## Koodidiojen grafiikka ja lopetusvideoiden erillinen käynnistys — 25.10.2026
+
+- Numeropaikkojen tyhjät havainnot näytetään tyhjinä. Toisella alkudialla on neljä tyhjää koodipaikkaa ja alaspäin osoittava animoitu nuoli.
+- Voitto ja häviö näyttävät ensin tuloksen; voitossa näkyy jäljellä oleva aika. Kumpikin lopetusvideo ja sen ääni käynnistyvät vasta ohjauskeskuksen Seuraava näkymä -painikkeesta. Edellinen näkymä pysäyttää videon ja palauttaa tuloksen. Tämä korvaa aiemman automaattisen käynnistyksen pelin päättyessä.
+- 115 pytest-testiä läpäisty. Uudet testit kattavat molemmat lopputulokset, videon odotuksen, käynnistämisen ja peruuttamisen, puuttuvan videon, nollauksen, pelaajien uudelleenyhdistämisen ja koodidialografiikan tallennuksen. TypeScript/Vite-build läpäisty.
+
+## Asetusnäkymä ja lopputulos — 25.10.2026
+
+- Erillinen asetusnäkymä `/#settings`, tallennus, palautus ja mediat sisältävä ZIP-vienti/-tuonti. Tiedostojen nimet validoidaan, polkusiirtymät ja puuttuvat mediat hylätään; tuonti käyttää uusia medianimiä. Asetusten tallennusvirhe siivoaa uudet tiedostot ja jättää vanhat asetukset voimaan.
+- Äänenvoimakkuuden livesäätö tarkistettu selaimessa ja palvelimen tallentamasta arvosta (27 %). Pelin vaihe, aika ja havainnot säilyvät ääniasetusmuutoksessa.
+- Lukittu kaksiosainen ohjepari tarkistettu selaimessa: samojen pöytien siirtymä valonauhan sisälle, punainen pysähtymismerkki ja vihreä poistumislupa. Järjestyksen, animaation ja lukituksen poistamisen yritykset hylätään myös API:ssa.
+- Koodidialografiikassa paikallaan pysyvät numerot vaihtuvat yksitellen satunnaisella viiveellä; sumennus 11 px. Varsinaisen pelin tyhjät numeropaikat pysyvät tyhjinä.
+- Voiton numerorullat pysähtyvät 1,05 / 1,50 / 1,95 / 2,40 sekunnin kohdalla, vaihtuvat vihreäksi ja neljä pling-ääntä ajoitetaan samoihin kohtiin ohjauskeskuksen Web Audio -rajapinnassa. Selaimessa tarkistettu neljä oikeaa numeroa, kulunut aika ja videon puuttuminen ennen Seuraava näkymä -painallusta. Fyysisten kaiuttimien ääntä ei arvioitu.
+- Kapea 390 px asetusnäkymä tarkistettu samasta sovelluksesta erillisessä testikehyksessä. Projektorikoon voitto- ja ohjenäkymät tarkistettu ilman ylimääräistä vieritystä.
+- 124 pytest-testiä ja TypeScript/Vite-build läpäisty. Mukana myös UTF-8-tallennus ja vanhan Windows-koodauksen luku. Erillistä koko Playwright-smoke-skriptiä ei ajettu; se päivitettiin vastaamaan uutta kulkua.
+
+## Osittaisten oikeellisuusvihjeiden poisto — 25.10.2026
+
+- Pelaajien numeropaikat ovat aina neutraaleja ennen koko pelin ratkeamista: ei vihreää väriä, hyväksyntämerkkiä tai OIKEIN-tekstiä. Numeron tunnistuminen ei paljasta, kuuluuko se oikeaan ratkaisuun.
+- Pelaajien WebSocket-tilannekuva peittää oikeellisuuden myös numero- ja taukonäkymässä sekä silloin, kun oikea koodi odottaa ihmisen hyväksyntää. Ohjauskeskuksen tarkistus ja koko koodin ratkaisulogiikka säilyvät.
+- 136 pytest-testiä ja TypeScript/Vite-build läpäisty. Testit kattavat kaikki pelivaiheet ja molemmat näkymät, ihmisen hyväksyntää odottavan koodin sekä pelaajan WebSocketin.
+
+## Hillitty lopputulos — 25.10.2026
+
+- Voittotuloksen pling-äänet ja Web Audio -äänigeneraattori poistettu. Myös numerorullat, vihreät välähdykset, hehkut ja pitkä lisäteksti poistettu.
+- Tuloksessa on tumma neutraali tausta, Huone ratkaistu -otsikko, ratkaisuun kulunut aika isona sekä jäljellä oleva aika ja lopullinen koodi pienempinä. Ainoa tulosnäkymän animaatio on rauhallinen koko näkymän häivytys.
+- Lopetusvideo ja sen ääni odottavat edelleen Seuraava näkymä -painiketta. Pelaajien pelinaikaisiin neutraaleihin numeroihin ei lisätty oikeellisuusvihjeitä.
+- TypeScript/Vite-build läpäisty. Backendin ratkaisulogiikkaa ei muutettu.
+
+## Mekaaninen lopputulos ja valittava lopetusääni — 25.10.2026
+
+- Lopputulos uusittu grafiitin ja teräksen sävyihin. Neljä numerokasettia lukittuu vuorotellen ja salpa vetäytyy; meripihkanvärinen merkkivalo on ainoa korostusväri. Pelinaikaiset numerot pysyvät neutraaleina.
+- Asetuksissa on enintään neljän vaihtoehdon esikuuntelu ja erillinen äänen valinta. Mitään ääntä ei valita automaattisesti. Valinta ei muuta pelivaihetta, aikaa tai havaintoja, ja kaikki vaihtoehdot kulkevat mukana ZIP-paketissa.
+- ElevenLabs-generointia ei ole vielä tehty: Chrome-kirjautuminen odottaa käyttäjää. Generointiraja on yksi; tästä syntyvät vaihtoehdot voidaan tuoda äänikirjastoon. Tyhjää kirjastoa ei täytetty korvaavilla äänillä.
+- 140 pytest-testiä ja TypeScript/Vite-build läpäisty. Uudet testit kattavat valinnan, neljän vaihtoehdon rajan, kestovalidoinnin, tuonnin/viennin ja epäonnistuneen tallennuksen siivouksen. Mekaaninen lopputulos tarkistettu selaimessa.
+
+## Lasipinnat, mekaaninen liike ja luodut äänet — 25.10.2026
+
+- Teräskotelo, ruuvit ja näkyvä salpa korvattu sovelluksen ilmeeseen sopivilla läpikuultavilla lasikorteilla. Suuret numerot napsahtavat paikalleen yksi kerrallaan; oranssi vaihtuu vihreäksi vasta 3,3 sekunnin kohdalla. Liike kunnioittaa vähennetyn animaation asetusta.
+- ElevenLabsissa tehtiin käyttäjän luvalla yksi generaatio, joka tuotti neljä 4 sekunnin WAV-vaihtoehtoa. Kaikki neljä tuotu paikallisiin peliasetuksiin. Ääntä ei valittu käyttäjän puolesta eikä toista generaatiota tehty.
+- Selaimessa tarkistettu oranssi välivaihe, kaikkien neljän numeron lukittuminen ja vihreä lopputila erillisellä testipalvelimella muuttamatta nykyistä peliä. Tarkistettu 1280×720- ja 390×600-näkymät.
+- Ensimmäisen äänen esikuuntelussa selaimen audioelementti toisti 4,0 sekunnin tiedostoa ilman virhettä. Fyysisten kaiuttimien äänenlaatua ei arvioitu. Äänenvalinta säilyi tyhjänä.
+- TypeScript/Vite-build läpäisty. Backendin toimintalogiikkaan ei tehty muutoksia tässä ulkoasuviimeistelyssä; edellisen vaiheen 140 pytest-testiä olivat läpäisseet.
+
+## Tervetulodia — 25.10.2026
+
+- Ensimmäinen oletusdia ja paikallisen pelin ensimmäinen dia: Tervetuloa pakohuoneeseen! Pöytä- ja valonauhaohje säilyvät sen jälkeen peräkkäisinä. Validointi estää parin erottamisen, järjestyksen vaihdon ja animaation muuttamisen.
+- 141 pytest-testiä läpäisty. Paikallisesta palvelimesta varmistettu uusi diajärjestys ja nykyisen lopputuloksen säilyminen.
