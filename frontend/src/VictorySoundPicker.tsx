@@ -48,7 +48,7 @@ export function VictorySoundPicker({ state, command, disabled, onPreviewChange }
     finally { URL.revokeObjectURL(url); setBusy(false); }
   }
   return <section className="panel victory-sound-picker"><div className="panel-heading"><h2>Mekaaninen lopetusääni</h2><span className="badge">{choices.length} / 4</span></div><div className="victory-sound-body">
-    <p>Kuuntele vaihtoehdot ja valitse yksi. Valinta tallentuu heti.</p>
+    <p>Kuuntele vaihtoehdot ja valitse yksi. Valinta tallentuu heti. Pelissä lyhyt klikki toistuu jokaisen numeron loksahtaessa.</p>
     <audio ref={audio} onEnded={stop} onError={() => { stop(); setError('Ääntä ei voitu toistaa.'); }} />
     <div className="sound-choice-list">{choices.map(choice => <div className={`sound-choice ${state.presentation.victory_sound === choice.file ? 'is-selected' : ''}`} key={choice.file}>
       <button className="button secondary icon-only" aria-label={`${playing === choice.file ? 'Pysäytä' : 'Kuuntele'} ${choice.name}`} onClick={() => void preview(choice)} disabled={disabled}>{playing === choice.file ? <Pause size={16} /> : <Play size={16} />}</button>

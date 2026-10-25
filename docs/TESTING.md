@@ -128,3 +128,18 @@ Fyysisen kameran laatu, valotus, macOS-käyttöoikeudet, paikallisverkon palomuu
 
 - Ensimmäinen oletusdia ja paikallisen pelin ensimmäinen dia: Tervetuloa pakohuoneeseen! Pöytä- ja valonauhaohje säilyvät sen jälkeen peräkkäisinä. Validointi estää parin erottamisen, järjestyksen vaihdon ja animaation muuttamisen.
 - 141 pytest-testiä läpäisty. Paikallisesta palvelimesta varmistettu uusi diajärjestys ja nykyisen lopputuloksen säilyminen.
+
+
+## Loppuratkaisun morph ja numeroklikit — 25.10.2026
+
+- Numerokorttien ja ajastimen jatkuva paikan- ja koonmuutos tarkistettu oikeasta pelinäkymästä lopputulokseen. Mitatut korttien paikat etenivät alkuperäisestä rivistä välivaiheen kautta loppuasetteluun. Ei erillistä tyhjää numerovaihetta. Oranssi vaihtuu vihreäksi koko sarjan lopussa.
+- Käyttäjän pyynnöstä ensimmäinen ElevenLabs-vaihtoehto valittu paikalliseen peliin. Uutta generaatiota ei tehty. Ensimmäisestä iskusta valmistetun 180 ms näytteen testissä varmistettu kuuluva sisältö, 6 ms iskukohta, nollaan vaimennetut reunat ja tyhjän äänen hylkäys.
+- Ohjauskeskuksen selaimessa kaikki neljä Web Audio -lähdettä päättyivät oikeassa järjestyksessä, noin 380 ms välein. Iskut sijoittuvat morphin sisään. Fyysisten kaiuttimien viivettä tai äänenlaatua ei arvioitu.
+- 1280×720- ja 390×844-näkymät tarkistettu. Kapeassa näkymässä ei vaakavieritystä. Vähennettyä liikettä kunnioittava polku säilyy. TypeScript/Vite-build ja git diff --check läpäisty. Backendin toimintalogiikkaa ei muutettu.
+
+## Hiljainen etsintämerkki ja ajastimen valonauha — 25.10.2026
+
+- Ajastimen valonauha käyttää alkudiojen meripihkanväristä reunaa ja samaa hillittyä välkeanimaatiota. Seuraava näkymä sammuttaa nauhan 550 ms aikana; numeroiden suureneminen alkaa 650 ms jälkeen. Pelaajille ei lisätä etsintälupaa tai uutta ohjetekstiä.
+- Erillisellä portin 8011 testipalvelimella ja omalla tilapäisellä asetustiedostolla varmistettu todellisessa Chrome-selaimessa API:n, backend-tilan ja WebSocketilla päivittyvän pelaajanäkymän koko kulku. Numerokortin leveys säilyi noin 70 px:ssä nauhan sammumiseen asti ja kasvoi vasta sen jälkeen noin 179 px:iin.
+- Tauotus, paluu ajastimeen ja nauhan syttyminen, käsihyväksyntää odottava koodi 3590, voitto, nollaus ja uudelleenyhdistäminen tarkistettu. Vähennetyn liikkeen asetus poistaa välkkeen ja siirtymät. 1280×720- ja 390×844-näkymissä ei vaaka- tai pystyvieritystä. Selaimessa ei JavaScript-virheitä.
+- TypeScript/Vite-build ja git diff --check läpäisty. Backendin pelilogiikkaa ei muutettu. Fyysisen valonauhan ja näytön yhteinen sammutus on harjoiteltava järjestäjien kanssa; sovellus ei ohjaa fyysistä nauhaa.
