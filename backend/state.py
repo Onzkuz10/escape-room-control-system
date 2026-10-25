@@ -148,7 +148,8 @@ class GameState:
                   "result_video_playing": self.result_video_playing,
                   "result_at": self.result_at,
                   "solution_digits": [int(d) for d in self.config.code] if self.phase == "solved" else None,
-                  "presentation": self.config.presentation.model_dump()}
+                  "presentation": self.config.presentation.model_dump(),
+                  "slot_icons": list(self.config.slot_icons)}
         if not player:
             result.update(code=self.config.code, regions=[r.model_dump() for r in self.config.regions],
                           confidences=self.confidences, camera=self.camera,

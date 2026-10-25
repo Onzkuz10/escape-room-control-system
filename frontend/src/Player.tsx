@@ -6,11 +6,14 @@ import { IntroSequence } from './IntroSequence';
 import { CodeSlide } from './CodeSlide';
 import { useLayoutEffect, useRef } from 'react';
 import { MORPH_SECONDS, RELEASE_AT } from './mechanicalSequence';
+import { DEFAULT_SLOT_ICONS, SlotIcon } from './SlotIcon';
 
 export function Player({ state, connected }: { state: RoomState; connected: boolean }) {
   const solved = state.phase === 'solved', expired = state.phase === 'expired';
   const pregame = state.phase === 'pregame', ready = state.phase === 'ready';
   const numbers = state.game_view === 'digits';
+  const slotIcons = state.slot_icons ?? DEFAULT_SLOT_ICONS;
+  const hasSlotIcons = slotIcons.some(Boolean);
   const slide = state.presentation.slides[state.slide_index];
   const display = useRef<HTMLElement>(null);
   const origin = useRef<{ cards: { box: DOMRect; font: number }[]; timer?: DOMRect } | null>(null);
@@ -74,7 +77,7 @@ export function Player({ state, connected }: { state: RoomState; connected: bool
         <GameTimer seconds={state.remaining_seconds} running={state.running} className="player-countdown" />
         <div className="player-timer-label">{state.phase === 'paused' ? 'AJASTIN PYSÄYTETTY' : 'AIKAA JÄLJELLÄ'}</div>
       </div>
-      <div className="player-indicators" aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}><span className="player-slot">0{i + 1}</span><div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
+      <div className={`player-indicators ${hasSlotIcons ? 'has-slot-icons' : ''}`} aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}><span className="player-slot">0{i + 1}</span>{hasSlotIcons && <div className="player-slot-icon"><SlotIcon icon={slotIcons[i]} /></div>}<div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
     </div>}
     {!connected && <div className="player-connection" role="status">Yhteys palautuu…</div>}
 

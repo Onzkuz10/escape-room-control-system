@@ -2,6 +2,7 @@ export interface Region { x: number; y: number; width: number; height: number }
 export interface RoomEvent { id: number; type: string; at: string; payload: Record<string, unknown> }
 export interface Slide { title: string; body: string; animation: 'fade' | 'float' | 'pulse' | 'none'; layout?: 'text' | 'seating' | 'movement' | 'code'; locked?: boolean; media: string | null }
 export interface SoundChoice { name: string; file: string; duration_seconds: number }
+export type SlotIconName = 'math' | 'golf' | 'car' | 'shovel';
 export interface Presentation { slides: Slide[]; pregame_music: string | null; game_music: string | null; victory_video: string | null; defeat_video: string | null; victory_sounds: SoundChoice[]; victory_sound: string | null; volume: number; muted: boolean }
 export interface RecognitionDiagnostic {
   engine?: string; input_image?: string | null; roi_image?: string | null; alternatives?: { digit: number; score: number }[];
@@ -14,6 +15,7 @@ export interface RoomState {
   phase: 'ready' | 'pregame' | 'running' | 'paused' | 'solved' | 'expired'; server_time: number;
   slide_index: number; game_view: 'timer' | 'digits'; result_video_playing: boolean; presentation: Presentation;
   result_at: number | null; solution_digits: number[] | null;
+  slot_icons: (SlotIconName | null)[];
   // Only dashboard sockets include the fields below.
   code: string; regions: Region[]; confidences: (number | null)[];
   recognition_diagnostics: (RecognitionDiagnostic | null)[]; recognition_at: number | null;

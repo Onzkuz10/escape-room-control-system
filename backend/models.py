@@ -66,12 +66,17 @@ class Presentation(BaseModel):
         return self
 
 
+SlotIcon = Literal["math", "golf", "car", "shovel"]
+
+
 class Config(BaseModel):
     code: str = Field(default="4279", pattern=r"^[0-9]{4}$")
     duration_seconds: int = Field(default=3600, ge=1, le=14400)
     regions: list[Region] = Field(default_factory=default_regions, min_length=4, max_length=4)
     camera_index: int = Field(default=0, ge=0)
     require_human_approval: bool = False
+    slot_icons: list[SlotIcon | None] = Field(
+        default_factory=lambda: ["math", "golf", "car", "shovel"], min_length=4, max_length=4)
     presentation: Presentation = Field(default_factory=Presentation)
 
 

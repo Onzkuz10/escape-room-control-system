@@ -224,7 +224,7 @@ async def command(cmd: Command):
         elif action == 'game_settings':
             if game.phase not in ('ready', 'pregame'):
                 raise ValueError('Muuta peliasetuksia ennen pelin käynnistämistä.')
-            if not isinstance(value, dict) or set(value) - {'code', 'duration_seconds', 'require_human_approval'}:
+            if not isinstance(value, dict) or set(value) - {'code', 'duration_seconds', 'require_human_approval', 'slot_icons'}:
                 raise ValueError('Tuntematon peliasetus.')
             config = Config.model_validate({**game.config.model_dump(), **value})
             save_config(config)

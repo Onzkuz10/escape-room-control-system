@@ -432,3 +432,53 @@ def test_welcome_precedes_intact_locked_intro_pair(client):
     assert client.get('/api/state').json()['slide_index'] == 0
     assert post(client, 'next_slide').json()['slide_index'] == 1
     assert post(client, 'next_slide').json()['slide_index'] == 2
+
+
+def test_slot_icons_persist_and_reach_player_without_following_digits(client):
+    icons = ['shovel', None, 'math', 'car']
+    response = post(client, 'game_settings', {'slot_icons': icons})
+    assert response.status_code == 200
+    assert response.json()['code'] == '4279'
+    assert main.load_config().slot_icons == icons
+    post(client, 'start')
+    post(client, 'next_view')
+    post(client, 'digits', [1, 9, 0, 3])
+    with client.websocket_connect('/ws?role=player') as player:
+        snapshot = player.receive_json()['state']
+        assert snapshot['slot_icons'] == icons
+        assert snapshot['digits'] == [1, 9, 0, 3]
+        assert snapshot['correct'] == [False] * 4
+        assert 'code' not in snapshot
+    assert post(client, 'game_settings', {'slot_icons': [None] * 4}).status_code == 400
+    assert post(client, 'reset').json()['slot_icons'] == icons
+    assert post(client, 'game_settings', {'code': '3590'}).json()['slot_icons'] == icons
+
+
+@pytest.mark.parametrize('icons', [[], [None] * 3, [None] * 5,
+    ['clock', 'golf', 'car', None], [False, None, None, None], 'math', None])
+def test_invalid_slot_icons_do_not_change_saved_configuration(client, icons):
+    before = main.game.config.model_dump()
+    assert post(client, 'game_settings', {'slot_icons': icons}).status_code == 400
+    assert main.game.config.model_dump() == before
+    assert not main.CONFIG_FILE.exists()
+
+
+def test_empty_slot_icons_are_portable_and_old_configs_get_clock_defaults(client):
+    assert Config.model_validate({'code': '3590'}).slot_icons == ['math', 'golf', 'car', 'shovel']
+    icons = [None, 'golf', None, 'shovel']
+    assert post(client, 'game_settings', {'slot_icons': icons}).status_code == 200
+    archive = client.get('/api/settings/export')
+    post(client, 'game_settings', {'slot_icons': [None] * 4})
+    imported = client.post('/api/settings/import', content=archive.content)
+    assert imported.status_code == 200
+    assert imported.json()['slot_icons'] == icons
+    assert main.load_config().slot_icons == icons
+
+
+def test_slot_icon_save_failure_keeps_previous_icons(client, monkeypatch):
+    before = list(main.game.config.slot_icons)
+    def fail(config):
+        raise OSError('disk full')
+    monkeypatch.setattr(main, 'save_config', fail)
+    assert post(client, 'game_settings', {'slot_icons': [None] * 4}).status_code == 500
+    assert main.game.config.slot_icons == before

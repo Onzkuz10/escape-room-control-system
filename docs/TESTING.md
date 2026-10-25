@@ -143,3 +143,10 @@ Fyysisen kameran laatu, valotus, macOS-käyttöoikeudet, paikallisverkon palomuu
 - Erillisellä portin 8011 testipalvelimella ja omalla tilapäisellä asetustiedostolla varmistettu todellisessa Chrome-selaimessa API:n, backend-tilan ja WebSocketilla päivittyvän pelaajanäkymän koko kulku. Numerokortin leveys säilyi noin 70 px:ssä nauhan sammumiseen asti ja kasvoi vasta sen jälkeen noin 179 px:iin.
 - Tauotus, paluu ajastimeen ja nauhan syttyminen, käsihyväksyntää odottava koodi 3590, voitto, nollaus ja uudelleenyhdistäminen tarkistettu. Vähennetyn liikkeen asetus poistaa välkkeen ja siirtymät. 1280×720- ja 390×844-näkymissä ei vaaka- tai pystyvieritystä. Selaimessa ei JavaScript-virheitä.
 - TypeScript/Vite-build ja git diff --check läpäisty. Backendin pelilogiikkaa ei muutettu. Fyysisen valonauhan ja näytön yhteinen sammutus on harjoiteltava järjestäjien kanssa; sovellus ei ohjaa fyysistä nauhaa.
+
+## Numeropaikkojen valittavat kuvakkeet — 25.10.2026
+
+- Peliasetuksissa jokaiselle neljälle numeropaikalle oma valinta: matematiikka, golf, auto, lapio tai ei kuvaketta. Oletukset vastaavat kellotauluja 3–5–9–0. Kuvakkeet näkyvät alusta asti pieninä ja kasvavat numeroiden kanssa valonauhan sammumisen jälkeen.
+- 151 pytest-testiä läpäisty. Uudet API-testit kattavat tallennuksen, pelaajan WebSocketin, paikkakohtaisuuden havaintojen ja koodin muuttuessa, nollauksen, vanhat asetukset, tyhjät valinnat, ZIP-viennin/-tuonnin, virheelliset arvot ja tallennusvirheen. Pelinaikainen asetusten muutos hylätään.
+- Erillisellä portin 8012 testipalvelimella tarkistettu Chromessa oikeiden asetusvalintojen ja tallennuspainikkeen kautta kulkeva ketju API:in ja pelaajan WebSocket-näkymään. Tallentamattomat valinnat säilyivät tilapäivitysten yli. Tarkistettu yksittäinen tyhjä paikka, kaikki tyhjät, oletusten palautus, uudelleenlataus ja ratkaisun käsihyväksyntä.
+- Pelaajanäkymät 1280×720, 1024×600 ja 390×844 sekä asetukset 390 px leveydessä tarkistettu. Ei vaakavieritystä, eikä pelaajanäkymässä pystyvieritystä. Kuvake oli alussa enintään 44×25 px ja kasvoi numeronäkymässä. Vähennetty liike poistaa siirtymät. Ei selainvirheitä. TypeScript/Vite-build läpäisty.

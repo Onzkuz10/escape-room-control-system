@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, Save, Settings2, Upload } from 'lucide-react';
 import { PresentationEditor } from './PresentationPanel';
 import { VictorySoundPicker } from './VictorySoundPicker';
-import type { RoomState, SendCommand } from './types';
+import { DEFAULT_SLOT_ICONS, SLOT_ICON_LABELS, SlotIcon } from './SlotIcon';
+import type { RoomState, SendCommand, SlotIconName } from './types';
 
 export function SettingsPage({ state, command, disabled, onBack, onPreviewChange }: { state: RoomState; command: SendCommand; disabled: boolean; onBack: () => void; onPreviewChange: (value: boolean) => void }) {
   const [code, setCode] = useState(state.code);
   const [minutes, setMinutes] = useState(state.duration_seconds / 60);
   const [approval, setApproval] = useState(state.require_human_approval);
+  const [slotIcons, setSlotIcons] = useState(() => state.slot_icons ?? [...DEFAULT_SLOT_ICONS]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [failure, setFailure] = useState('');
@@ -15,12 +17,14 @@ export function SettingsPage({ state, command, disabled, onBack, onPreviewChange
   const [transfer, setTransfer] = useState<'export' | 'import' | null>(null);
   const locked = disabled || busy || !['ready', 'pregame'].includes(state.phase);
   useEffect(() => { setCode(state.code); setMinutes(state.duration_seconds / 60); setApproval(state.require_human_approval); }, [state.code, state.duration_seconds, state.require_human_approval]);
-  const dirty = code !== state.code || Math.round(minutes * 60) !== state.duration_seconds || approval !== state.require_human_approval;
+  const savedSlotIcons = JSON.stringify(state.slot_icons ?? DEFAULT_SLOT_ICONS);
+  useEffect(() => { setSlotIcons(JSON.parse(savedSlotIcons)); }, [savedSlotIcons]);
+  const dirty = code !== state.code || Math.round(minutes * 60) !== state.duration_seconds || approval !== state.require_human_approval || JSON.stringify(slotIcons) !== savedSlotIcons;
   const valid = /^[0-9]{4}$/.test(code) && Number.isFinite(minutes) && Math.round(minutes * 60) >= 1 && minutes <= 240;
   async function save() {
     setBusy(true); setMessage('');
     try {
-      if (await command('game_settings', { code, duration_seconds: Math.round(minutes * 60), require_human_approval: approval })) setMessage('Peliasetukset tallennettu.');
+      if (await command('game_settings', { code, duration_seconds: Math.round(minutes * 60), require_human_approval: approval, slot_icons: slotIcons })) setMessage('Peliasetukset tallennettu.');
     } finally { setBusy(false); }
   }
   async function exportSettings() {
@@ -55,6 +59,18 @@ export function SettingsPage({ state, command, disabled, onBack, onPreviewChange
     <section className="panel general-settings"><div className="panel-heading"><div className="title-with-icon"><Settings2 size={17} /><h2>Pelin tiedot</h2></div></div>
       <fieldset disabled={locked}><div className="general-settings-fields"><label>Oikea koodi<input aria-label="Oikea koodi" inputMode="numeric" maxLength={4} value={code} onChange={event => { if (/^[0-9]{0,4}$/.test(event.target.value)) setCode(event.target.value); }} /><small>Neljä numeroa, myös alkunollat säilyvät.</small></label><label>Pelin kesto (min)<input aria-label="Pelin kesto min" type="number" min={1 / 60} max={240} step="any" value={minutes} onChange={event => setMinutes(Number(event.target.value))} /><small>Enintään 240 minuuttia.</small></label></div>
       <label className="settings-checkbox"><input type="checkbox" checked={approval} onChange={event => setApproval(event.target.checked)} />Vaadi ihmisen tarkistus ennen voittoa</label>
+      <div className="slot-icon-settings">
+        <div className="slot-icon-heading"><h3>Numeropaikkojen kuvakkeet</h3><button type="button" className="text-button" onClick={() => setSlotIcons([...DEFAULT_SLOT_ICONS])}>Palauta kellotaulujen kuvakkeet</button></div>
+        <p>Valitse jokaiseen paikkaan kuvake tai ei mitään. Kellotauluissa 3 = matematiikka, 5 = golf, 9 = auto ja 0 = lapio.</p>
+        <div className="slot-icon-choices">{slotIcons.map((icon, index) => <label className="slot-icon-choice" key={index}>
+          <span>PAIKKA {index + 1}</span>
+          <div className="slot-icon-preview"><div>{icon ? <SlotIcon icon={icon} /> : <span className="slot-icon-empty">Ei kuvaketta</span>}</div><strong>{code[index] ?? '–'}</strong></div>
+          <select aria-label={`Numeropaikan ${index + 1} kuvake`} value={icon ?? ''} onChange={event => setSlotIcons(previous => previous.map((value, i) => i === index ? (event.target.value || null) as SlotIconName | null : value))}>
+            <option value="">Ei kuvaketta</option>
+            {Object.entries(SLOT_ICON_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          </select>
+        </label>)}</div>
+      </div>
       <button className="button primary" disabled={!dirty || !valid} onClick={() => void save()}><Save size={15} />{busy ? 'Tallennetaan…' : 'Tallenna peliasetukset'}</button><span className="settings-save-note">{dirty ? 'Tallentamattomia muutoksia' : 'Peliasetukset tallennettu'}</span></fieldset>
     </section>
     <VictorySoundPicker state={state} command={command} disabled={disabled || busy} onPreviewChange={onPreviewChange} />
