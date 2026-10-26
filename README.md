@@ -149,6 +149,8 @@ Pelaajien näytössä yksittäisen numeron oikeellisuutta ei näytetä väreill�
 
 **Peliasetukset → Mekaaninen lopetusääni** tarjoaa selaimesta ladatut ja mediakansiosta löydetyt äänivaihtoehdot. Valitse yksi Käytä tätä ääntä -painikkeesta; mitään vaihtoehtoa ei oteta käyttöön automaattisesti. Valinta tallentuu heti myös pelin aikana. Äänetön on käytettävissä erikseen. Vaihtoehdot ja valinta sisältyvät asetuspaketin vientiin ja tuontiin. Esikuuntelu hiljentää taustamusiikkia tilapäisesti. Valitusta lopetusäänestä käytetään 180 ms klikkiä neljästi, täsmälleen numeroiden loksahtamisissa. Lopetusääni kuuluu vain ohjauskeskuksesta, sen äänenvoimakkuus noudattaa livesäätöä ja vanhaa lopputulosta avattaessa ääntä ei aloiteta uudestaan.
 
+Uuden tai muuttuneen numeron ilmestyessä numerorulla pyörähtää ja lukittuu. Ohjauskeskus toistaa lukitushetkellä V2-äänen lyhyen iskun tiedostosta `media/sound-effects/lopetus-2.wav`; jos sitä ei ole kansiossa, käytetään tallennettujen äänivaihtoehtojen toista tiedostoa. Toiminto on sama kamera- ja manuaalitilassa, eikä jo nähtyjä havaintoja toisteta uudelleen ikkunan päivityksessä. Voiton äänivalinta on erillinen; V1 on `lopetus-1.wav`.
+
 ## Mediakansio ja numeroiden lyhyt muisti
 
 Projektin `media/music/`, `media/videos/` ja `media/sound-effects/` toimivat paikallisena mediakirjastona. Asetukset hakevat tiedostot automaattisesti viiden sekunnin välein; valitse haluamasi tiedosto kansiovalikosta ja tallenna esitys. Äänitehoste valitaan Käytä tätä ääntä -painikkeesta. Katso tarkat ohjeet [media/README.md](media/README.md). Lähdekansion sijainnin voi vaihtaa `ESCAPE_LIBRARY`-ympäristömuuttujalla.

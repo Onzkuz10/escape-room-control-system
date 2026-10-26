@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RoomState } from './types';
 import { VictoryClicks } from './VictoryClicks';
+import { DigitClicks } from './DigitClicks';
 
 const SILENT_AUDIO = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
 
@@ -157,5 +158,5 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
     };
   }, [ready, source, pregame_music, state.phase, state.result_video_playing]);
 
-  return <><VictoryClicks state={state} previewing={previewing} /><audio ref={introAudio} className="pregame-audio" src={pregame_music ?? SILENT_AUDIO} loop preload="auto" /><audio ref={audio} className="game-audio" src={source ?? SILENT_AUDIO} loop={!terminal} preload="auto" onEnded={() => { if (state.phase === 'expired' && !state.result_video_playing) finishedLossMusic.current = true; }} onError={() => { if (source) setError('Äänitiedostoa ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} />{error && <p className="error-banner" role="status">{error}</p>}</>;
+  return <><VictoryClicks state={state} previewing={previewing} /><DigitClicks state={state} previewing={previewing} /><audio ref={introAudio} className="pregame-audio" src={pregame_music ?? SILENT_AUDIO} loop preload="auto" /><audio ref={audio} className="game-audio" src={source ?? SILENT_AUDIO} loop={!terminal} preload="auto" onEnded={() => { if (state.phase === 'expired' && !state.result_video_playing) finishedLossMusic.current = true; }} onError={() => { if (source) setError('Äänitiedostoa ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} />{error && <p className="error-banner" role="status">{error}</p>}</>;
 }

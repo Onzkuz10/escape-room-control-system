@@ -293,3 +293,11 @@
 .player-display:not(.is-pregame):not(.is-solved):not(.is-expired){background:#030303}
 .player-display:not(.is-pregame):not(.is-solved):not(.is-expired)::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,#b60c1e 0%,#5a0710 30%,#190205 62%,transparent 90%);opacity:var(--timer-tension,0);transition:opacity 1s linear}
 @media(prefers-reduced-motion:reduce){.start-transition-slide,.start-transition-black{animation:none}.start-transition-slide{visibility:hidden}.start-transition-black{opacity:0}.player-display:not(.is-pregame)::before{transition:none}}
+
+/* A single number rolls into its inset window and seats mechanically. */
+.player-lamp{overflow:hidden}
+.player-lamp>.digit-reel.is-spinning{animation:digit-reel-roll .14s linear infinite}
+.player-lamp>.digit-reel.is-landed{animation:digit-reel-seat .24s cubic-bezier(.2,.8,.25,1) both}
+@keyframes digit-reel-roll{0%{transform:translateY(-17%);filter:blur(1px);opacity:.65}50%{transform:translateY(0);filter:blur(.35px);opacity:1}100%{transform:translateY(17%);filter:blur(1px);opacity:.65}}
+@keyframes digit-reel-seat{0%{transform:translateY(-10%)}65%{transform:translateY(3%)}100%{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.player-lamp>.digit-reel{animation:none}}

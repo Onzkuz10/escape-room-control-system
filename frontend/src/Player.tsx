@@ -7,6 +7,7 @@ import { CodeSlide } from './CodeSlide';
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { MORPH_SECONDS, RELEASE_AT } from './mechanicalSequence';
 import { DEFAULT_SLOT_ICONS, SlotIcon } from './SlotIcon';
+import { DigitReel } from './DigitReel';
 
 function StartTransition({ slide, age }: { slide: Slide | null; age: number }) {
   const [initialAge] = useState(() => Math.max(0, age));
@@ -97,7 +98,7 @@ export function Player({ state, connected }: { state: RoomState; connected: bool
         <GameTimer seconds={state.remaining_seconds} running={state.running} className="player-countdown" />
         <div className="player-timer-label">{state.phase === 'paused' ? 'AJASTIN PYSÄYTETTY' : 'AIKAA JÄLJELLÄ'}</div>
       </div>
-      <div className={`player-indicators ${hasSlotIcons ? 'has-slot-icons' : ''}`} aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}>{hasSlotIcons && <div className="player-slot-icon"><SlotIcon icon={slotIcons[i]} /></div>}<div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
+      <div className={`player-indicators ${hasSlotIcons ? 'has-slot-icons' : ''}`} aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}>{hasSlotIcons && <div className="player-slot-icon"><SlotIcon icon={slotIcons[i]} /></div>}<div className="player-lamp" aria-label={digit === null ? 'Ei numeroa' : `Numero ${digit}`}><DigitReel digit={digit} enabled={state.phase === 'running' || state.phase === 'paused'} /></div><span className="lamp-label">NUMERO</span></div>)}</div>
     </div>}
     {(state.phase === 'running' || state.phase === 'paused') && startAge < 2.5 && <StartTransition key={state.game_started_at} slide={lastIntro.current} age={startAge} />}
     {!connected && <div className="player-connection" role="status">Yhteys palautuu…</div>}
