@@ -38,7 +38,7 @@ def receive_phase(ws, phase):
 def test_two_sockets_share_timer_digits_success_and_reconnect(client):
     with client.websocket_connect('/ws?role=dashboard') as dash, client.websocket_connect('/ws?role=player') as player:
         d = dash.receive_json()['state']; p = player.receive_json()['state']
-        assert d['remaining_seconds'] == p['remaining_seconds'] == 3600
+        assert d['remaining_seconds'] == p['remaining_seconds'] == 720
         assert 'code' in d and 'code' not in p
         assert post(client,'start').status_code == 200
         assert receive_phase(dash,'running')['running']
@@ -46,7 +46,7 @@ def test_two_sockets_share_timer_digits_success_and_reconnect(client):
         time.sleep(.12)
         assert post(client,'pause').status_code == 200
         paused = receive_phase(player,'paused')
-        assert 3599 < paused['remaining_seconds'] < 3600
+        assert 719 < paused['remaining_seconds'] < 720
         for i, digit in enumerate([4, 2, 7]):
             assert post(client,'digit',{'index':i, 'digit':digit}).status_code == 200
         assert client.get('/api/state').json()['correct'] == [True,True,True,False]
@@ -153,7 +153,7 @@ def test_presentation_media_persistence_and_player_reconnection(client):
     assert main.load_config().presentation.pregame_music == music
     assert client.get(gif).headers['content-type'] == 'image/gif'
     assert client.get(music).content == b'ID3test'
-    assert post(client, 'pregame').json()['remaining_seconds'] == 3600
+    assert post(client, 'pregame').json()['remaining_seconds'] == 720
     assert post(client, 'next_slide').json()['slide_index'] == 1
     with client.websocket_connect('/ws?role=player') as player:
         snapshot = player.receive_json()['state']

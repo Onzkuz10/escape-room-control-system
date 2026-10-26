@@ -10,8 +10,8 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
   const ready = state.phase === 'ready';
   const terminal = state.phase === 'solved' || state.phase === 'expired';
   const { pregame_music, game_music, victory_video, defeat_video, volume, muted } = state.presentation;
-  const active = state.phase === 'pregame' || state.phase === 'running' || (terminal && state.result_video_playing);
-  const source = terminal ? state.result_video_playing ? state.phase === 'solved' ? victory_video : defeat_video : null : ready || state.phase === 'pregame' ? pregame_music : game_music;
+  const active = state.phase === 'pregame' || state.phase === 'running' || (state.phase === 'expired' && !state.result_video_playing) || (terminal && state.result_video_playing);
+  const source = terminal && state.result_video_playing ? state.phase === 'solved' ? victory_video : defeat_video : state.phase === 'solved' ? null : ready || state.phase === 'pregame' ? pregame_music : game_music;
   const playback = useRef({ active, volume, muted });
   playback.current = { active, volume, muted };
 
@@ -33,7 +33,7 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
       if (!cancelled && reason.name !== 'AbortError') setError('Musiikin toisto estyi. Napsauta ohjauspaneelia ja tarkista valittu musiikkitiedosto.');
     });
     return () => { cancelled = true; element.pause(); };
-  }, [active, ready, muted, source, state.phase, state.result_at]);
+  }, [active, ready, muted, source]);
 
   useEffect(() => {
     const element = audio.current;
@@ -59,5 +59,5 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
     };
   }, [ready, source]);
 
-  return <><VictoryClicks state={state} previewing={previewing} /><audio ref={audio} src={source ?? SILENT_AUDIO} loop={!terminal} preload="auto" onError={() => { if (source) setError('Äänitiedostoa ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} />{error && <p className="error-banner" role="status">{error}</p>}</>;
+  return <><VictoryClicks state={state} previewing={previewing} /><audio ref={audio} src={source ?? SILENT_AUDIO} loop={!terminal || (state.phase === 'expired' && !state.result_video_playing)} preload="auto" onError={() => { if (source) setError('Äänitiedostoa ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} />{error && <p className="error-banner" role="status">{error}</p>}</>;
 }
