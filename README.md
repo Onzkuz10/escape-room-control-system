@@ -44,7 +44,7 @@ Kaksoisnapsautus pelaajien näytössä pyytää selaimen fullscreen-tilaa. Safar
 
 ## Pre-game, diat ja taustamusiikki
 
-Pelin alussa ajastinta ympäröi tasaisesti palava valonauha. Ensimmäinen **Seuraava näkymä** sammuttaa näytön nauhan, mutta ajastin ja pienet numerot pysyvät paikoillaan. Toinen **Seuraava näkymä** suurentaa numerot ja nauhan valot välkkyvät vuorotellen. Tutoriaalissa välkkyvä nauha tarkoittaa, että pelaajat saavat liikkua. Fyysistä valonauhaa ohjataan erikseen; sovellus ei ohjaa valolaitetta.
+Pelin alussa ajastinta ympäröi tasaisesti palava valonauha. Ensimmäinen **Seuraava näkymä** käynnistää valonauhan vuorottelevan välkkymisen; ajastin ja pienet numerot pysyvät paikoillaan. Toinen **Seuraava näkymä** suurentaa numerot ja valot jatkavat välkkymistä. Tutoriaalissa välkkyvä nauha tarkoittaa, että pelaajat saavat liikkua. Fyysistä valonauhaa ohjataan erikseen; sovellus ei ohjaa valolaitetta.
 
 1. Avaa ohjauspaneelin **Pelin ohjaus → Diat, musiikki ja lopetusvideot**.
 2. Lisää omat musiikkitiedostot erikseen pre-gameen ja peliin (MP3, WAV, OGG tai M4A). Musiikkia ei ole mukana valmiina. Valitse äänenvoimakkuus ja tarvittaessa mykistys.
@@ -54,6 +54,7 @@ Pelin alussa ajastinta ympäröi tasaisesti palava valonauha. Ensimmäinen **Seu
 6. Vaihda dioja **Edellinen dia**- ja **Seuraava dia** -painikkeilla. Pre-game ei kuluta peliaikaa.
 7. Paina **Käynnistä peli**. Pre-game-musiikki häipyy kahdessa sekunnissa. Pelaajien näyttö pimenee sekunnissa, pysyy mustana sekunnin ja paljastaa ajastimen. Ajastin käynnistyy painalluksesta; valittu pelimusiikki alkaa ja taustan punainen hehku voimistuu peliajan kuluessa.
    Jos ohjausikkuna päivitetään kesken pelin, pelimusiikki jatkuu ajastimen mukaiseen kohtaan kelattuna. Häviön jälkeen nykyinen kierros soi loppuun, eikä ala uudestaan.
+   Voiton äänimaiseman voi valita asetuksista; se alkaa voittonäkymässä ja vaihtuu videon ääneen, kun lopetusvideo käynnistetään. Äänimaisema sisältyy asetuspaketin vientiin.
 8. Pelin aikainen **Seuraava näkymä** suurentaa numeroruudut ja pienentää ajastimen. Numerot tarkistetaan automaattisesti vasta tässä näkymässä. **Edellinen näkymä** palauttaa numeronäkymästä isoon ajastimeen peliaikaa nollaamatta. Myös Seuraava näkymä kiertää takaisin ajastimeen. Kaikki oikeat numerot ratkaisevat huoneen ja pysäyttävät ajastimen sekä musiikin.
 
 Ajastimen tauotus tauottaa myös pelimusiikin; jatkaminen jatkaa toistoa. Nollaus palauttaa valmiustilan, ensimmäisen dian ja ajastinnäkymän. Yhteyden palauduttua pelaajien näyttö saa nykyisen vaiheen, dian ja pelinäkymän automaattisesti. Ohjauskeskuksen uudelleenlatauksen jälkeen selain voi vaatia yhden napsautuksen ohjauspaneeliin äänentoiston sallimiseksi. Tiedostojen toistettavuus riippuu selaimen tukemista ääni- ja videokoodekeista.
@@ -149,7 +150,7 @@ Pelaajien näytössä yksittäisen numeron oikeellisuutta ei näytetä väreill�
 
 **Peliasetukset → Mekaaninen lopetusääni** tarjoaa selaimesta ladatut ja mediakansiosta löydetyt äänivaihtoehdot. Valitse yksi Käytä tätä ääntä -painikkeesta; mitään vaihtoehtoa ei oteta käyttöön automaattisesti. Valinta tallentuu heti myös pelin aikana. Äänetön on käytettävissä erikseen. Vaihtoehdot ja valinta sisältyvät asetuspaketin vientiin ja tuontiin. Esikuuntelu hiljentää taustamusiikkia tilapäisesti. Valitusta lopetusäänestä käytetään 180 ms klikkiä neljästi, täsmälleen numeroiden loksahtamisissa. Lopetusääni kuuluu vain ohjauskeskuksesta, sen äänenvoimakkuus noudattaa livesäätöä ja vanhaa lopputulosta avattaessa ääntä ei aloiteta uudestaan.
 
-Uuden tai muuttuneen numeron ilmestyessä numerorulla pyörähtää ja lukittuu. Ohjauskeskus toistaa lukitushetkellä V2-äänen lyhyen iskun tiedostosta `media/sound-effects/lopetus-2.wav`; jos sitä ei ole kansiossa, käytetään tallennettujen äänivaihtoehtojen toista tiedostoa. Toiminto on sama kamera- ja manuaalitilassa, eikä jo nähtyjä havaintoja toisteta uudelleen ikkunan päivityksessä. Voiton äänivalinta on erillinen; V1 on `lopetus-1.wav`.
+Uuden numeron ilmestyessä rulla etenee nopeasti numerojärjestyksessä viimeisestä numerosta uuteen, esimerkiksi 2 → 3 → 4. Poistettu numero katoaa näkyvistä, mutta sen arvo muistetaan seuraavaa pyörähdystä varten. Ohjauskeskus toistaa lukitushetkellä hiljaisen V2-iskun tiedostosta `media/sound-effects/lopetus-2.wav`; jos sitä ei ole kansiossa, käytetään tallennettujen äänivaihtoehtojen toista tiedostoa. Toiminto on sama kamera- ja manuaalitilassa, eikä jo nähtyjä havaintoja toisteta uudelleen ikkunan päivityksessä. Voiton ääni on erillinen ja voimakkaampi; V1 on `lopetus-1.wav`.
 
 ## Mediakansio ja numeroiden lyhyt muisti
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RoomState } from './types';
 import { useMediaLibrary } from './MediaLibrary';
-import { DIGIT_LOCK_SECONDS } from './DigitReel';
+import { digitRoll } from './digitRoll';
 import { trimClick } from './VictoryClicks';
 
 export function DigitClicks({ state, previewing }: { state: RoomState; previewing: boolean }) {
@@ -12,6 +12,7 @@ export function DigitClicks({ state, previewing }: { state: RoomState; previewin
   const gain = useRef<GainNode | null>(null);
   const pending = useRef<(AudioBufferSourceNode | null)[]>([null, null, null, null]);
   const previous = useRef([...state.digits]);
+  const lastNumbers = useRef([...state.digits]);
   const [clip, setClip] = useState<{ file: string; buffer: AudioBuffer; attackOffset: number } | null>(null);
   const [error, setError] = useState('');
 
@@ -32,7 +33,7 @@ export function DigitClicks({ state, previewing }: { state: RoomState; previewin
   }, []);
 
   useEffect(() => {
-    if (gain.current && context.current) gain.current.gain.setTargetAtTime(state.presentation.muted ? 0 : state.presentation.volume * (previewing ? .1 : 1), context.current.currentTime, .015);
+    if (gain.current && context.current) gain.current.gain.setTargetAtTime(state.presentation.muted ? 0 : state.presentation.volume * .35 * (previewing ? .1 : 1), context.current.currentTime, .015);
   }, [state.presentation.volume, state.presentation.muted, previewing]);
 
   useEffect(() => {
@@ -58,18 +59,21 @@ export function DigitClicks({ state, previewing }: { state: RoomState; previewin
     const before = previous.current;
     previous.current = [...state.digits];
     const live = state.phase === 'running' || state.phase === 'paused';
+    if (state.phase === 'ready') lastNumbers.current = [null, null, null, null];
     state.digits.forEach((digit, index) => {
       if (!live || digit !== before[index]) {
         const old = pending.current[index];
         if (old) { try { old.stop(); } catch { /* Already finished. */ } pending.current[index] = null; }
       }
       const audioContext = context.current;
+      const from = lastNumbers.current[index];
+      if (live && digit !== null && digit !== before[index]) lastNumbers.current[index] = digit;
       if (!live || digit === null || digit === before[index] || !clip || clip.file !== file || !audioContext || !gain.current || audioContext.state !== 'running') return;
       const node = audioContext.createBufferSource();
       node.buffer = clip.buffer;
       node.connect(gain.current);
       const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      node.start(audioContext.currentTime + Math.max(0, (reduced ? 0 : DIGIT_LOCK_SECONDS) - clip.attackOffset));
+      node.start(audioContext.currentTime + Math.max(0, (reduced ? 0 : digitRoll(from, digit).seconds) - clip.attackOffset));
       pending.current[index] = node;
       node.onended = () => { node.disconnect(); if (pending.current[index] === node) pending.current[index] = null; };
     });

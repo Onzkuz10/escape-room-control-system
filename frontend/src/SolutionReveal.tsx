@@ -12,7 +12,7 @@ export function SolutionReveal({ digits, usedSeconds, remaining, elapsed }: { di
     return () => timers.forEach(clearTimeout);
   }, [initialElapsed]);
   return <div className={`solution-reveal glass-result ${released ? 'is-released' : ''}`}>
-      <h1 className="solution-heading">Huone ratkaistu</h1>
+      <h1 className="solution-heading">OIKEA KOODI!</h1>
       <div className="solution-slots" aria-label={`Lopullinen koodi ${digits.join(' ')}`}>
         {digits.map((digit, index) => <div className={`solution-slot ${locked[index] ? 'is-locked' : ''}`} key={index} aria-hidden="true"><span className="drum-face"><span>{digit}</span></span></div>)}
       </div>

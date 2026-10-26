@@ -3,7 +3,7 @@ export interface RoomEvent { id: number; type: string; at: string; payload: Reco
 export interface Slide { title: string; body: string; animation: 'fade' | 'float' | 'pulse' | 'none'; layout?: 'text' | 'seating' | 'movement' | 'code'; locked?: boolean; media: string | null }
 export interface SoundChoice { name: string; file: string; duration_seconds: number | null }
 export type SlotIconName = 'math' | 'golf' | 'car' | 'shovel';
-export interface Presentation { slides: Slide[]; pregame_music: string | null; game_music: string | null; victory_video: string | null; defeat_video: string | null; victory_sounds: SoundChoice[]; victory_sound: string | null; volume: number; muted: boolean }
+export interface Presentation { slides: Slide[]; pregame_music: string | null; game_music: string | null; victory_music: string | null; victory_video: string | null; defeat_video: string | null; victory_sounds: SoundChoice[]; victory_sound: string | null; volume: number; muted: boolean }
 export interface RecognitionDiagnostic {
   engine?: string; input_image?: string | null; roi_image?: string | null; alternatives?: { digit: number; score: number }[];
   ocr_text: string | null; ocr_confidence: number | null; ocr_threshold: number | null;

@@ -78,7 +78,7 @@ with sync_playwright() as p:
     player.wait_for_timeout(700)
     assert player.locator('.player-lamp').first.bounding_box()['width'] > small_width
     dashboard.get_by_role('textbox',name='Testinumero 4',exact=True).fill('9')
-    expect(player.get_by_role('heading',name='Huone ratkaistu')).to_be_visible()
+    expect(player.get_by_role('heading',name='OIKEA KOODI!')).to_be_visible()
     expect(player.locator('.result-victory')).to_be_visible()
     expect(player.locator('.solution-summary.is-visible')).to_be_visible()
     expect(player.locator('.solution-slot')).to_have_count(4)

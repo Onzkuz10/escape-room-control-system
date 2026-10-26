@@ -13,7 +13,7 @@ export function ResultScreen({ won, seconds, duration, digits, elapsed, video }:
         <div className="defeat-window"><h1>AIKA LOPPUI</h1></div>
         <div className="defeat-lock defeat-lock-left" aria-hidden="true" />
         <div className="defeat-lock defeat-lock-right" aria-hidden="true" />
-      </div> : <h1>{won ? 'Huone ratkaistu' : 'AIKA LOPPUI'}</h1>}
+      </div> : <h1>{won ? 'OIKEA KOODI!' : 'AIKA LOPPUI'}</h1>}
       {won && <p className="result-time">AIKA <strong>{formatTime(Math.floor(Math.max(0, duration - seconds)))}</strong></p>}
       {failed && <p className="media-error">Videota ei voitu toistaa. Tarkista tiedosto ohjauskeskuksesta.</p>}
     </div>}

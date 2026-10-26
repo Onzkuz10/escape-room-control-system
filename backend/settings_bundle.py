@@ -13,7 +13,7 @@ MAX_FILE_SIZE = 80 * 1024 * 1024
 
 def media_paths(config):
     p = config.presentation
-    return {path for path in [p.pregame_music, p.game_music, p.victory_video, p.defeat_video,
+    return {path for path in [p.pregame_music, p.game_music, p.victory_music, p.victory_video, p.defeat_video,
                              p.victory_sound, *(choice.file for choice in p.victory_sounds),
                              *(slide.media for slide in p.slides)] if path}
 
@@ -59,7 +59,7 @@ def import_bundle(data, media_dir):
                 target.write_bytes(archive.read(f'media/{Path(path).name}'))
                 replacements[path] = f'/media/{name}'
             presentation = config.presentation
-            for field in ('pregame_music', 'game_music', 'victory_video', 'defeat_video', 'victory_sound'):
+            for field in ('pregame_music', 'game_music', 'victory_music', 'victory_video', 'defeat_video', 'victory_sound'):
                 old = getattr(presentation, field)
                 if old:
                     setattr(presentation, field, replacements[old])

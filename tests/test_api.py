@@ -183,7 +183,25 @@ def test_media_and_presentation_validation(client, monkeypatch):
     assert post(client, 'presentation', {'volume': 2}).status_code == 400
     assert post(client, 'presentation', {'pregame_music': 'https://example.com/file.mp3'}).status_code == 400
     assert post(client, 'presentation', {'pregame_music': '/media/' + 'a' * 32 + '.mp3'}).status_code == 400
+    assert post(client, 'presentation', {'victory_music': '/media/' + 'a' * 32 + '.mp3'}).status_code == 400
     assert post(client, 'presentation', {'slides': [{'media': '/media/../../config.json'}]}).status_code == 400
+
+
+def test_victory_soundscape_is_persisted_and_portable(client):
+    sound = client.post('/api/media?filename=victory.mp3', content=b'victory-audio').json()['url']
+    presentation = main.game.config.presentation.model_dump()
+    presentation['victory_music'] = sound
+    assert post(client, 'presentation', presentation).status_code == 200
+    assert main.load_config().presentation.victory_music == sound
+    archive = client.get('/api/settings/export')
+    assert archive.status_code == 200
+    presentation['victory_music'] = None
+    assert post(client, 'presentation', presentation).status_code == 200
+    imported = client.post('/api/settings/import', content=archive.content)
+    assert imported.status_code == 200
+    restored = imported.json()['presentation']['victory_music']
+    assert restored and restored != sound
+    assert client.get(restored).content == b'victory-audio'
     assert post(client, 'next_view').status_code == 400
     assert client.get('/media/missing.mp3').status_code == 404
 

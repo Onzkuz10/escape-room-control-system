@@ -2,7 +2,7 @@
 
 Lisää tiedostot suoraan näihin kansioihin. Myös omat alikansiot toimivat.
 
-- `music/`: odotus- ja pelimusiikki (MP3, WAV, OGG, M4A).
+- `music/`: odotus- ja pelimusiikki sekä voiton äänimaisema (MP3, WAV, OGG, M4A).
 - `videos/`: alkuvideot, lopetusvideot ja diojen videot (MP4, WebM).
 - `sound-effects/`: lopetusäänen vaihtoehdot (MP3, WAV, OGG, M4A).
 

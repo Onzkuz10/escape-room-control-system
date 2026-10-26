@@ -8,10 +8,11 @@ const SILENT_AUDIO = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8A
 export function ControllerMusic({ state, previewing = false }: { state: RoomState; previewing?: boolean }) {
   const audio = useRef<HTMLAudioElement>(null);
   const introAudio = useRef<HTMLAudioElement>(null);
+  const victoryAudio = useRef<HTMLAudioElement>(null);
   const [error, setError] = useState('');
   const ready = state.phase === 'ready';
   const terminal = state.phase === 'solved' || state.phase === 'expired';
-  const { pregame_music, game_music, victory_video, defeat_video, volume, muted } = state.presentation;
+  const { pregame_music, game_music, victory_music, victory_video, defeat_video, volume, muted } = state.presentation;
   const active = state.phase === 'running' || (state.phase === 'expired' && !state.result_video_playing) || (terminal && state.result_video_playing);
   const source = terminal && state.result_video_playing ? state.phase === 'solved' ? victory_video : defeat_video : state.phase === 'solved' || ready || state.phase === 'pregame' ? null : game_music;
   const finishedLossMusic = useRef(false);
@@ -41,6 +42,45 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
     element.muted = muted;
     element.volume = Math.max(0, Math.min(1, volume * (previewing ? .1 : 1) * introGain.current));
   }, [volume, muted, previewing]);
+
+  useEffect(() => {
+    const element = victoryAudio.current;
+    if (!element) return;
+    element.volume = previewing ? volume * .1 : volume;
+    element.muted = muted;
+  }, [volume, muted, previewing]);
+
+  useEffect(() => {
+    const element = victoryAudio.current;
+    if (!element) return;
+    if (state.phase !== 'solved' || state.result_video_playing || !victory_music || muted) {
+      element.pause();
+      return;
+    }
+    let cancelled = false;
+    const begin = () => {
+      if (cancelled) return;
+      const latest = latestState.current;
+      const resultAt = latest.state.result_at;
+      const age = resultAt == null ? 0 : Math.max(0, latest.state.server_time - resultAt + (performance.now() - latest.receivedAt) / 1000);
+      if (Number.isFinite(element.duration) && age >= element.duration) {
+        element.currentTime = element.duration;
+        element.pause();
+        return;
+      }
+      element.currentTime = age;
+      void element.play().catch(reason => {
+        if (!cancelled && reason.name !== 'AbortError') setError('Voiton ääni ei käynnistynyt. Napsauta ohjauskeskusta ja tarkista äänitiedosto.');
+      });
+    };
+    if (element.readyState >= 1) begin();
+    else element.addEventListener('loadedmetadata', begin, { once: true });
+    return () => {
+      cancelled = true;
+      element.removeEventListener('loadedmetadata', begin);
+      element.pause();
+    };
+  }, [state.phase, state.result_video_playing, state.result_at, victory_music, muted]);
 
   useEffect(() => {
     const element = introAudio.current;
@@ -135,6 +175,18 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
     // Prime this same audio element during the operator's normal click before
     // the asynchronous pre-game command returns. No player-side gesture needed.
     function playFromGesture() {
+      const victory = victoryAudio.current;
+      if (victory && victory_music && state.phase === 'solved' && !state.result_video_playing && !playback.current.muted && victory.paused && !victory.ended) {
+        void victory.play().catch(() => {});
+      }
+      if (victory && victory_music && state.phase !== 'solved' && victory.paused && !victory.ended) {
+        victory.volume = 0;
+        void victory.play().then(() => {
+          if (latestState.current.state.phase !== 'solved') victory.pause();
+          const settings = introSettings.current;
+          victory.volume = settings.volume * (settings.previewing ? .1 : 1);
+        }).catch(() => {});
+      }
       const intro = introAudio.current;
       if (intro && (ready || state.phase === 'pregame') && intro.paused && !intro.ended) {
         intro.volume = state.phase === 'pregame' && pregame_music ? playback.current.volume : 0;
@@ -156,7 +208,7 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
       document.removeEventListener('pointerdown', playFromGesture, true);
       document.removeEventListener('keydown', playFromGesture, true);
     };
-  }, [ready, source, pregame_music, state.phase, state.result_video_playing]);
+  }, [ready, source, pregame_music, victory_music, state.phase, state.result_video_playing]);
 
-  return <><VictoryClicks state={state} previewing={previewing} /><DigitClicks state={state} previewing={previewing} /><audio ref={introAudio} className="pregame-audio" src={pregame_music ?? SILENT_AUDIO} loop preload="auto" /><audio ref={audio} className="game-audio" src={source ?? SILENT_AUDIO} loop={!terminal} preload="auto" onEnded={() => { if (state.phase === 'expired' && !state.result_video_playing) finishedLossMusic.current = true; }} onError={() => { if (source) setError('Äänitiedostoa ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} />{error && <p className="error-banner" role="status">{error}</p>}</>;
+  return <><VictoryClicks state={state} previewing={previewing} /><DigitClicks state={state} previewing={previewing} /><audio ref={introAudio} className="pregame-audio" src={pregame_music ?? SILENT_AUDIO} loop preload="auto" /><audio ref={victoryAudio} className="victory-audio" src={victory_music ?? SILENT_AUDIO} preload="auto" onError={() => { if (victory_music) setError('Voiton ääntä ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} /><audio ref={audio} className="game-audio" src={source ?? SILENT_AUDIO} loop={!terminal} preload="auto" onEnded={() => { if (state.phase === 'expired' && !state.result_video_playing) finishedLossMusic.current = true; }} onError={() => { if (source) setError('Äänitiedostoa ei voitu toistaa. Tarkista tiedosto ohjauspaneelista.'); }} />{error && <p className="error-banner" role="status">{error}</p>}</>;
 }

@@ -43,6 +43,7 @@ class Presentation(BaseModel):
     ], min_length=1, max_length=20)
     pregame_music: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a)$")
     game_music: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a)$")
+    victory_music: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a)$")
     victory_video: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp4|webm)$")
     defeat_video: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp4|webm)$")
     victory_sounds: list[SoundChoice] = Field(default_factory=list, max_length=64)

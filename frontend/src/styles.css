@@ -251,9 +251,9 @@
 .led-odd{background-position:18px 0,18px 100%,0 18px,100% 18px}
 .intro-movement.lights-on .intro-light-strip,.intro-movement.lights-off .intro-light-strip{border-color:#35291c;box-shadow:0 0 14px #eaa04325;animation:none}
 .intro-light-strip .led-lights{inset:-3px;border-width:3px}
-.intro-movement.lights-off .led-even,.view-digits .led-even{animation:led-alternate 1.2s steps(1,end) infinite}
-.intro-movement.lights-off .led-odd,.view-digits .led-odd{animation:led-alternate 1.2s steps(1,end) -.6s infinite}
-.view-lights-off .led-lights{opacity:0;transition:opacity .55s}
+.intro-movement.lights-off .led-even,.view-lights-off .led-even,.view-digits .led-even{animation:led-alternate 1.2s steps(1,end) infinite}
+.intro-movement.lights-off .led-odd,.view-lights-off .led-odd,.view-digits .led-odd{animation:led-alternate 1.2s steps(1,end) -.6s infinite}
+.view-lights-off .led-lights{transition:opacity .55s}
 .view-lights-off .led-strip{border-color:#252321;box-shadow:none}
 .view-digits .timer-light-strip{opacity:1}
 @keyframes led-alternate{0%,100%{opacity:1}50%{opacity:0}}
@@ -280,7 +280,7 @@
 @keyframes defeat-lock-right{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes defeat-window-in{from{transform:scaleY(.04);opacity:0}to{transform:scaleY(1);opacity:1}}
 @keyframes defeat-type-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.intro-movement.lights-off .led-lights,.view-digits .led-lights{animation:none}.intro-movement.lights-off .led-odd,.view-digits .led-odd{opacity:.15}.defeat-assembly *{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.intro-movement.lights-off .led-lights,.view-lights-off .led-lights,.view-digits .led-lights{animation:none}.intro-movement.lights-off .led-odd,.view-lights-off .led-odd,.view-digits .led-odd{opacity:.15}.defeat-assembly *{animation:none!important}}
 
 /* The old slide fades to black, holds, then reveals the running clock. */
 .start-transition{position:fixed;inset:0;z-index:50;pointer-events:none}
@@ -294,10 +294,21 @@
 .player-display:not(.is-pregame):not(.is-solved):not(.is-expired)::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,#b60c1e 0%,#5a0710 30%,#190205 62%,transparent 90%);opacity:var(--timer-tension,0);transition:opacity 1s linear}
 @media(prefers-reduced-motion:reduce){.start-transition-slide,.start-transition-black{animation:none}.start-transition-slide{visibility:hidden}.start-transition-black{opacity:0}.player-display:not(.is-pregame)::before{transition:none}}
 
-/* A single number rolls into its inset window and seats mechanically. */
+/* Each number wheel advances in order through the digits. */
 .player-lamp{overflow:hidden}
-.player-lamp>.digit-reel.is-spinning{animation:digit-reel-roll .14s linear infinite}
-.player-lamp>.digit-reel.is-landed{animation:digit-reel-seat .24s cubic-bezier(.2,.8,.25,1) both}
-@keyframes digit-reel-roll{0%{transform:translateY(-17%);filter:blur(1px);opacity:.65}50%{transform:translateY(0);filter:blur(.35px);opacity:1}100%{transform:translateY(17%);filter:blur(1px);opacity:.65}}
-@keyframes digit-reel-seat{0%{transform:translateY(-10%)}65%{transform:translateY(3%)}100%{transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.player-lamp>.digit-reel{animation:none}}
+.player-lamp>.digit-reel{display:block;height:1em;line-height:1;overflow:hidden}
+.digit-reel-track{display:flex;flex-direction:column}
+.digit-reel-track>span{display:block;height:1em;flex:none;line-height:1}
+.digit-reel.is-spinning .digit-reel-track{animation:digit-wheel var(--reel-duration) steps(var(--reel-steps),end) both}
+@keyframes digit-wheel{from{transform:translateY(0)}to{transform:translateY(calc(-1em * var(--reel-steps)))}}
+@media(prefers-reduced-motion:reduce){.digit-reel.is-spinning .digit-reel-track{animation:none}}
+
+/* Victory slots share the same square, recessed mechanical construction. */
+.glass-result .solution-slot,.result-screen:has(.glass-result) .glass-result .solution-slot{
+  border:1px solid var(--result-border);
+  border-radius:0;
+  background:linear-gradient(180deg,#050606 0%,#111312 42%,#191916 100%);
+  backdrop-filter:none;
+  box-shadow:inset 0 10px 18px #000e,inset 6px 0 14px #000a,inset -6px 0 14px #000a,inset 0 -1px #b2a78933,0 12px 32px #0007;
+}
+.glass-result .solution-heading{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.015em}
