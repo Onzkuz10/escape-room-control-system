@@ -193,3 +193,9 @@
 .glass-result .drum-face>span{display:inline-block;transform-origin:center}
 
 .library-media-choice{display:flex;flex-direction:column;gap:7px;font-size:11px;color:var(--muted);max-width:100%}.library-media-choice select{max-width:100%;width:100%;padding:9px 10px;background:#111512;color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px}
+
+/* Intro typography: a cinematic condensed face, kept local for offline shows. */
+@font-face{font-family:'Barlow Condensed';src:url('./assets/fonts/BarlowCondensed-Medium.ttf') format('truetype');font-style:normal;font-weight:500;font-display:swap}
+@font-face{font-family:'Barlow Condensed';src:url('./assets/fonts/BarlowCondensed-SemiBold.ttf') format('truetype');font-style:normal;font-weight:600;font-display:swap}
+.pregame-slide .slide-copy h1,.intro-sequence h1,.code-slide h1{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.005em;line-height:1.12;text-wrap:balance}
+.pregame-slide .slide-copy p,.intro-subtitle{font-family:'Barlow Condensed',sans-serif;font-weight:500;letter-spacing:.015em}
