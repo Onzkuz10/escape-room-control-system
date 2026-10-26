@@ -269,3 +269,15 @@
 @keyframes shutter-bottom{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes timeout-plate{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.intro-movement.lights-off .led-lights,.view-digits .led-lights{animation:none}.intro-movement.lights-off .led-odd,.view-digits .led-odd{opacity:.15}.result-defeat:not(.has-video)::before,.result-defeat:not(.has-video)::after,.result-defeat:not(.has-video) .result-copy{animation:none}}
+
+/* The old slide fades to black, holds, then reveals the running clock. */
+.start-transition{position:fixed;inset:0;z-index:50;pointer-events:none}
+.start-transition-slide{position:absolute;inset:0;display:flex;flex-direction:column;padding:32px clamp(20px,4vw,64px);background:radial-gradient(ellipse at 50% 40%,#1b1c21 0%,#0d0e11 55%,#08090b 100%);animation:start-slide-out 2.5s linear both;animation-delay:var(--start-delay)}
+.start-transition-black{position:absolute;inset:0;background:#000;animation:start-black 2.5s linear both;animation-delay:var(--start-delay)}
+@keyframes start-slide-out{0%,40%{visibility:visible}40.01%,100%{visibility:hidden}}
+@keyframes start-black{0%{opacity:0}40%,80%{opacity:1}100%{opacity:0}}
+
+/* A continuously increasing red glow follows elapsed game time. */
+.player-display:not(.is-pregame):not(.is-solved):not(.is-expired){background:#030303}
+.player-display:not(.is-pregame):not(.is-solved):not(.is-expired)::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 42%,#b60c1e 0%,#5a0710 30%,#190205 62%,transparent 90%);opacity:var(--timer-tension,0);transition:opacity 1s linear}
+@media(prefers-reduced-motion:reduce){.start-transition-slide,.start-transition-black{animation:none}.start-transition-slide{visibility:hidden}.start-transition-black{opacity:0}.player-display:not(.is-pregame)::before{transition:none}}

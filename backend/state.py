@@ -16,6 +16,7 @@ class GameState:
         self.game_view = "timer"
         self.result_video_playing = False
         self.result_at = None
+        self.game_started_at = None
         self.last_tick = clock()
         self.warning_sent = False
         self.generation = 0
@@ -58,6 +59,8 @@ class GameState:
         if self.phase in ("solved", "expired"):
             raise ValueError("Nollaa huone ennen uuden pelin käynnistämistä.")
         if not self.running:
+            if self.phase in ("ready", "pregame"):
+                self.game_started_at = time.time()
             if self.phase == "pregame":
                 self.clear_detection()
             self.running, self.phase = True, "running"
@@ -101,6 +104,7 @@ class GameState:
         self.game_view = "timer"
         self.result_video_playing = False
         self.result_at = None
+        self.game_started_at = None
         self.remaining = float(self.config.duration_seconds)
         self.last_tick = self.clock()
         self.digits, self.confidences = [None] * 4, [None] * 4
@@ -147,6 +151,7 @@ class GameState:
                   "slide_index": self.slide_index, "game_view": self.game_view,
                   "result_video_playing": self.result_video_playing,
                   "result_at": self.result_at,
+                  "game_started_at": self.game_started_at,
                   "solution_digits": [int(d) for d in self.config.code] if self.phase == "solved" else None,
                   "presentation": self.config.presentation.model_dump(),
                   "slot_icons": list(self.config.slot_icons)}

@@ -14,7 +14,7 @@ export interface RoomState {
   remaining_seconds: number; duration_seconds: number; running: boolean;
   phase: 'ready' | 'pregame' | 'running' | 'paused' | 'solved' | 'expired'; server_time: number;
   slide_index: number; game_view: 'timer' | 'lights_off' | 'digits'; result_video_playing: boolean; presentation: Presentation;
-  result_at: number | null; solution_digits: number[] | null;
+  result_at: number | null; game_started_at: number | null; solution_digits: number[] | null;
   slot_icons: (SlotIconName | null)[];
   // Only dashboard sockets include the fields below.
   code: string; regions: Region[]; confidences: (number | null)[];

@@ -31,6 +31,21 @@ def test_countdown_pause_resume_uses_monotonic_clock(room):
     assert audio.cue == 'tension'
 
 
+def test_game_start_timestamp_is_shared_and_not_reset_on_resume(room):
+    state, now, *_ = room
+    state.pregame()
+    assert state.snapshot(player=True)['game_started_at'] is None
+    state.start()
+    started = state.snapshot(player=True)['game_started_at']
+    assert started is not None and state.snapshot()['game_started_at'] == started
+    state.pause()
+    now[0] += 3
+    state.start()
+    assert state.snapshot()['game_started_at'] == started
+    state.reset()
+    assert state.snapshot()['game_started_at'] is None
+
+
 def test_correct_positions_and_latched_success(room):
     state, now, bus, audio = room
     state.start()

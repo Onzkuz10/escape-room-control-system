@@ -1,12 +1,26 @@
-import type { RoomState } from './types';
+import type { RoomState, Slide } from './types';
 import { SlideMedia } from './PresentationPanel';
 import { GameTimer, timerStage } from './GameTimer';
 import { ResultScreen } from './ResultScreen';
 import { IntroSequence } from './IntroSequence';
 import { CodeSlide } from './CodeSlide';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { MORPH_SECONDS, RELEASE_AT } from './mechanicalSequence';
 import { DEFAULT_SLOT_ICONS, SlotIcon } from './SlotIcon';
+
+function StartTransition({ slide, age }: { slide: Slide | null; age: number }) {
+  const [initialAge] = useState(() => Math.max(0, age));
+  const style = { '--start-delay': `-${initialAge}s` } as CSSProperties;
+  return <div className="start-transition" style={style} aria-hidden="true">
+    {slide && <div className="start-transition-slide">
+      {slide.layout === 'seating' || slide.layout === 'movement' ? <IntroSequence slide={slide} /> : slide.layout === 'code' ? <CodeSlide slide={slide} /> : <div className="pregame-slide">
+        {slide.media && <SlideMedia src={slide.media} title={slide.title} />}
+        <div className="slide-copy"><h1>{slide.title}</h1><p>{slide.body}</p></div>
+      </div>}
+    </div>}
+    <div className="start-transition-black" />
+  </div>;
+}
 
 export function Player({ state, connected }: { state: RoomState; connected: boolean }) {
   const solved = state.phase === 'solved', expired = state.phase === 'expired';
@@ -15,6 +29,12 @@ export function Player({ state, connected }: { state: RoomState; connected: bool
   const slotIcons = state.slot_icons ?? DEFAULT_SLOT_ICONS;
   const hasSlotIcons = slotIcons.some(Boolean);
   const slide = state.presentation.slides[state.slide_index];
+  const lastIntro = useRef<Slide | null>(null);
+  if (pregame) lastIntro.current = slide;
+  if (ready) lastIntro.current = null;
+  const startAge = state.game_started_at == null ? Infinity : Math.max(0, state.server_time - state.game_started_at);
+  const progress = Math.max(0, Math.min(1, 1 - state.remaining_seconds / Math.max(1, state.duration_seconds)));
+  const timerStyle = { '--timer-tension': progress } as CSSProperties;
   const display = useRef<HTMLElement>(null);
   const origin = useRef<{ cards: { box: DOMRect; font: number }[]; timer?: DOMRect } | null>(null);
   const animations = useRef<Animation[]>([]);
@@ -66,7 +86,7 @@ export function Player({ state, connected }: { state: RoomState; connected: bool
     });
   }, [state, solved]);
   useLayoutEffect(() => () => animations.current.forEach(animation => animation.cancel()), []);
-  return <main ref={display} className={`player-display ${state.running || state.phase === 'paused' ? timerStage(state.remaining_seconds) : ''} ${ready ? 'is-ready' : ''} ${solved ? 'is-solved' : ''} ${expired ? 'is-expired' : ''} ${numbers ? 'view-digits' : state.game_view === 'lights_off' ? 'view-lights-off' : 'view-timer'} ${pregame || ready ? 'is-pregame' : ''}`} onDoubleClick={() => { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void document.documentElement.requestFullscreen?.().catch(() => {}); }}>
+  return <main ref={display} style={timerStyle} className={`player-display ${state.running || state.phase === 'paused' ? timerStage(state.remaining_seconds) : ''} ${ready ? 'is-ready' : ''} ${solved ? 'is-solved' : ''} ${expired ? 'is-expired' : ''} ${numbers ? 'view-digits' : state.game_view === 'lights_off' ? 'view-lights-off' : 'view-timer'} ${pregame || ready ? 'is-pregame' : ''}`} onDoubleClick={() => { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); else void document.documentElement.requestFullscreen?.().catch(() => {}); }}>
     {solved || expired ? <ResultScreen key={`${state.phase}-${state.result_video_playing}`} won={solved} seconds={state.remaining_seconds} duration={state.duration_seconds} digits={state.solution_digits ?? state.digits.map(value => value ?? 0)} elapsed={state.result_at == null ? 5 : Math.max(0, state.server_time - state.result_at)} video={state.result_video_playing ? solved ? state.presentation.victory_video : state.presentation.defeat_video : null} /> : ready ? <p className="player-waiting">odotetaan seuraavan pelin käynnistystä...</p> : pregame && (slide.layout === 'seating' || slide.layout === 'movement') ? <IntroSequence slide={slide} /> : pregame && slide.layout === 'code' ? <CodeSlide key={state.slide_index} slide={slide} /> : pregame ? <div className="pregame-slide" key={`${state.slide_index}-${slide.media}-${slide.animation}`}>
       {slide.media && <SlideMedia key={slide.media} src={slide.media} title={slide.title} />}
       <div className={`slide-copy animation-${slide.animation}`}><h1>{slide.title}</h1><p>{slide.body}</p></div>
@@ -79,6 +99,7 @@ export function Player({ state, connected }: { state: RoomState; connected: bool
       </div>
       <div className={`player-indicators ${hasSlotIcons ? 'has-slot-icons' : ''}`} aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}>{hasSlotIcons && <div className="player-slot-icon"><SlotIcon icon={slotIcons[i]} /></div>}<div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
     </div>}
+    {(state.phase === 'running' || state.phase === 'paused') && startAge < 2.5 && <StartTransition key={state.game_started_at} slide={lastIntro.current} age={startAge} />}
     {!connected && <div className="player-connection" role="status">Yhteys palautuu…</div>}
 
   </main>;
