@@ -77,7 +77,7 @@ export function Player({ state, connected }: { state: RoomState; connected: bool
         <GameTimer seconds={state.remaining_seconds} running={state.running} className="player-countdown" />
         <div className="player-timer-label">{state.phase === 'paused' ? 'AJASTIN PYSÄYTETTY' : 'AIKAA JÄLJELLÄ'}</div>
       </div>
-      <div className={`player-indicators ${hasSlotIcons ? 'has-slot-icons' : ''}`} aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}><span className="player-slot">0{i + 1}</span>{hasSlotIcons && <div className="player-slot-icon"><SlotIcon icon={slotIcons[i]} /></div>}<div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
+      <div className={`player-indicators ${hasSlotIcons ? 'has-slot-icons' : ''}`} aria-label="Luetut numerot">{state.digits.map((digit, i) => <div className="player-indicator" key={i}>{hasSlotIcons && <div className="player-slot-icon"><SlotIcon icon={slotIcons[i]} /></div>}<div className="player-lamp"><span>{digit ?? ''}</span></div><span className="lamp-label">NUMERO</span></div>)}</div>
     </div>}
     {!connected && <div className="player-connection" role="status">Yhteys palautuu…</div>}
 

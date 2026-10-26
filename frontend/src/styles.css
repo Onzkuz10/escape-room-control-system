@@ -136,7 +136,7 @@
 @media(max-width:400px){.slot-icon-choice{padding:10px}.slot-icon-choice select{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.player-slot-icon{transition:none}}
 
-/* The same amber boundary as the intro: light off first, then larger digits. */
+/* The same amber boundary as the intro, followed by larger digits. */
 .player-timer-frame{position:relative;max-width:100%;padding:clamp(22px,4svh,38px) clamp(20px,4vw,60px);transition:padding .65s ease .65s}
 .timer-light-strip{position:absolute;inset:0;pointer-events:none;opacity:1;transition:opacity .55s ease}
 .timer-light-strip>span{position:absolute;inset:0;border:3px solid #ffc45c;border-radius:24px;box-shadow:0 0 28px #ffb43c45,inset 0 0 22px #ffb43c15;animation:light-strip-flicker 1.3s linear infinite}
@@ -199,3 +199,26 @@
 @font-face{font-family:'Barlow Condensed';src:url('./assets/fonts/BarlowCondensed-SemiBold.ttf') format('truetype');font-style:normal;font-weight:600;font-display:swap}
 .pregame-slide .slide-copy h1,.intro-sequence h1,.code-slide h1{font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:.005em;line-height:1.12;text-wrap:balance}
 .pregame-slide .slide-copy p,.intro-subtitle{font-family:'Barlow Condensed',sans-serif;font-weight:500;letter-spacing:.015em}
+
+/* Steady light means stay; dim, gently flickering light means move. */
+.intro-movement.lights-on .intro-light-strip{animation:none}
+.intro-movement.lights-off .intro-light-strip{border-color:#c18a3a;box-shadow:0 0 15px #c4812828,inset 0 0 12px #c4812810;animation:movement-strip-flicker 1.7s linear infinite}
+.timer-light-strip>span{animation:none}
+.view-digits .timer-light-strip{opacity:.65}
+.view-digits .timer-light-strip>span{animation:movement-strip-flicker 1.7s linear .55s infinite}
+.view-digits .player-timer-frame{padding:clamp(14px,2.5svh,24px) clamp(18px,3vw,40px)}
+@keyframes movement-strip-flicker{0%,30%,38%,68%,76%,100%{opacity:.78}33%,72%{opacity:.46}35%,74%{opacity:.92}}
+
+/* A restrained, darker timer surface and unframed number readouts. */
+.player-display:not(.is-pregame):not(.is-solved):not(.is-expired){background:radial-gradient(ellipse at 50% 38%,#20201f 0%,#101112 48%,#070809 100%)}
+.player-display:not(.is-pregame) .player-countdown{text-shadow:0 2px 24px #0008}
+.player-display:not(.is-pregame) .player-timer-label{color:#b0a596}
+.player-display:not(.is-pregame) .player-lamp,.player-display:not(.is-pregame).view-digits .player-lamp{border:0;border-radius:0;background:transparent;box-shadow:none}
+.player-display:not(.is-pregame) .player-lamp>span{color:#eee8de;text-shadow:0 2px 12px #000}
+@media(max-width:640px){
+  .view-digits:not(.is-solved) .player-indicators{gap:2vw}
+  .view-digits:not(.is-solved) .player-lamp{width:18vw;height:24vw}
+  .view-digits:not(.is-solved) .player-lamp>span{font-size:12vw}
+  .view-digits .player-slot-icon{width:18vw;height:6svh}
+}
+@media(prefers-reduced-motion:reduce){.intro-movement.lights-off .intro-light-strip,.view-digits .timer-light-strip>span{animation:none}.intro-movement.lights-off .intro-light-strip{opacity:.65}}
