@@ -259,16 +259,28 @@
 @keyframes led-alternate{0%,100%{opacity:1}50%{opacity:0}}
 
 /* A forceful timeout reveal, while leaving the selected video unobstructed. */
-.result-screen.result-defeat:not(.has-video){background:#080909;overflow:hidden}
-.result-defeat:not(.has-video)::before,.result-defeat:not(.has-video)::after{content:'';position:absolute;left:0;right:0;height:50%;background:linear-gradient(180deg,#161817,#242322 46%,#0c0d0d);pointer-events:none}
-.result-defeat:not(.has-video)::before{top:0;border-bottom:2px solid #59403c;box-shadow:0 5px 22px #000;animation:shutter-top .8s cubic-bezier(.28,.65,.25,1) both}
-.result-defeat:not(.has-video)::after{bottom:0;border-top:2px solid #1c1d1c;box-shadow:0 -5px 22px #000;animation:shutter-bottom .8s cubic-bezier(.28,.65,.25,1) both}
-.result-defeat:not(.has-video) .result-copy{width:min(86vw,1080px);padding:clamp(24px,5vw,56px) 14px;border-top:2px solid #8e352e;border-bottom:2px solid #532421;background:linear-gradient(180deg,#100d0d,#191413 50%,#090a09);box-shadow:0 12px 40px #000c,inset 0 1px #ffffff18;animation:timeout-plate .7s .3s ease-out both}
-.result-defeat:not(.has-video) .result-copy h1{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:clamp(62px,13vw,180px);letter-spacing:.035em;line-height:1;color:#eadfda;text-shadow:0 3px 0 #000}
-@keyframes shutter-top{from{transform:translateY(-100%)}to{transform:translateY(0)}}
-@keyframes shutter-bottom{from{transform:translateY(100%)}to{transform:translateY(0)}}
-@keyframes timeout-plate{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.intro-movement.lights-off .led-lights,.view-digits .led-lights{animation:none}.intro-movement.lights-off .led-odd,.view-digits .led-odd{opacity:.15}.result-defeat:not(.has-video)::before,.result-defeat:not(.has-video)::after,.result-defeat:not(.has-video) .result-copy{animation:none}}
+.result-screen.result-defeat:not(.has-video){background:radial-gradient(ellipse at 50% 48%,#541015 0%,#20070a 37%,#090405 76%);overflow:hidden}
+.result-defeat:not(.has-video)::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#060303 0%,transparent 18% 82%,#060303 100%),repeating-linear-gradient(90deg,transparent 0 79px,#e74a4010 80px 81px);opacity:.8}
+.result-defeat:not(.has-video) .result-copy{width:min(92vw,1200px);padding:0;background:none;border:0;box-shadow:none;animation:none}
+.defeat-assembly{position:relative;width:100%;height:clamp(190px,32vw,340px);display:grid;place-items:center;isolation:isolate}
+.defeat-window{position:relative;z-index:2;display:grid;place-items:center;width:86%;height:59%;overflow:hidden;border:1px solid #a63a37;background:linear-gradient(180deg,#100708 0%,#2d090c 48%,#0a0506 100%);box-shadow:inset 0 0 36px #000,inset 0 1px #ff8b6e45,0 0 55px #e127252b;animation:defeat-window-in .75s .35s cubic-bezier(.2,.75,.25,1) both}
+.result-defeat:not(.has-video) .defeat-window h1{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:clamp(54px,11.8vw,158px);letter-spacing:.035em;line-height:1;color:#ff625a;text-shadow:0 0 28px #f13d3550,0 3px 0 #270506;white-space:nowrap;animation:defeat-type-in .55s .7s ease-out both}
+.defeat-rail{position:absolute;z-index:1;left:3%;right:3%;height:25%;border:1px solid #66312e;background:linear-gradient(180deg,#381819,#160b0c 26%,#351314 49%,#120808 78%,#4f1b1b);box-shadow:0 8px 26px #000b,inset 0 1px #ff8e7c30}
+.defeat-rail::after{content:'';position:absolute;left:7%;right:7%;top:50%;height:2px;background:linear-gradient(90deg,transparent,#d8473d88 20%,#f16b5d88 50%,#d8473d88 80%,transparent)}
+.defeat-rail-top{top:0;animation:defeat-rail-top .8s cubic-bezier(.2,.75,.2,1) both}
+.defeat-rail-bottom{bottom:0;animation:defeat-rail-bottom .8s cubic-bezier(.2,.75,.2,1) both}
+.defeat-lock{position:absolute;z-index:3;top:16%;bottom:16%;width:8%;border:1px solid #71312d;background:linear-gradient(90deg,#100708,#3c1716 35%,#1b0b0a 72%,#0a0606);box-shadow:0 8px 22px #000b,inset 1px 0 #ff9c7c32}
+.defeat-lock::before,.defeat-lock::after{content:'';position:absolute;left:50%;width:7px;height:7px;transform:translateX(-50%);border:1px solid #a5544a;border-radius:50%;background:#170808;box-shadow:inset 0 1px 2px #000}
+.defeat-lock::before{top:14%}.defeat-lock::after{bottom:14%}
+.defeat-lock-left{left:0;animation:defeat-lock-left .65s .4s cubic-bezier(.2,.75,.2,1) both}
+.defeat-lock-right{right:0;animation:defeat-lock-right .65s .4s cubic-bezier(.2,.75,.2,1) both}
+@keyframes defeat-rail-top{from{transform:translateY(-85%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes defeat-rail-bottom{from{transform:translateY(85%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes defeat-lock-left{from{transform:translateX(-110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes defeat-lock-right{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes defeat-window-in{from{transform:scaleY(.04);opacity:0}to{transform:scaleY(1);opacity:1}}
+@keyframes defeat-type-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.intro-movement.lights-off .led-lights,.view-digits .led-lights{animation:none}.intro-movement.lights-off .led-odd,.view-digits .led-odd{opacity:.15}.defeat-assembly *{animation:none!important}}
 
 /* The old slide fades to black, holds, then reveals the running clock. */
 .start-transition{position:fixed;inset:0;z-index:50;pointer-events:none}

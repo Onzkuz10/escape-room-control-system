@@ -14,11 +14,16 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
   const active = state.phase === 'running' || (state.phase === 'expired' && !state.result_video_playing) || (terminal && state.result_video_playing);
   const source = terminal && state.result_video_playing ? state.phase === 'solved' ? victory_video : defeat_video : state.phase === 'solved' || ready || state.phase === 'pregame' ? null : game_music;
   const finishedLossMusic = useRef(false);
+  const syncedGameMusic = useRef<string | null>(null);
+  const musicSyncPending = useRef(false);
+  const latestState = useRef({ state, receivedAt: performance.now() });
+  latestState.current = { state, receivedAt: performance.now() };
   const previousPhase = useRef(state.phase);
   const introGain = useRef(1);
   const introSettings = useRef({ volume, muted, previewing });
   introSettings.current = { volume, muted, previewing };
   if (state.phase !== 'expired') finishedLossMusic.current = false;
+  if (ready || state.phase === 'pregame') syncedGameMusic.current = null;
   const playback = useRef({ active, volume, muted });
   playback.current = { active, volume, muted };
 
@@ -77,10 +82,50 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
     setError('');
     if (!active || muted || !source || (state.phase === 'expired' && !state.result_video_playing && finishedLossMusic.current)) { element.pause(); return; }
     let cancelled = false;
-    void element.play().catch(reason => {
-      if (!cancelled && reason.name !== 'AbortError') setError('Musiikin toisto estyi. Napsauta ohjauspaneelia ja tarkista valittu musiikkitiedosto.');
-    });
-    return () => { cancelled = true; element.pause(); };
+    let onMetadata: (() => void) | undefined;
+    const isGameMusic = source === game_music && !state.result_video_playing && (state.phase === 'running' || state.phase === 'expired');
+    const musicKey = `${state.game_started_at ?? 'current'}:${source}`;
+    const play = () => {
+      if (cancelled) return;
+      void element.play().catch(reason => {
+        if (!cancelled && reason.name !== 'AbortError') setError('Musiikin toisto estyi. Napsauta ohjauspaneelia ja tarkista valittu musiikkitiedosto.');
+      });
+    };
+    if (isGameMusic && syncedGameMusic.current !== musicKey) {
+      musicSyncPending.current = true;
+      onMetadata = () => {
+        if (cancelled) return;
+        const duration = element.duration;
+        if (Number.isFinite(duration) && duration > 0) {
+          const latest = latestState.current;
+          const current = latest.state;
+          const sinceUpdate = Math.max(0, (performance.now() - latest.receivedAt) / 1000);
+          const gameElapsed = Math.max(0, current.duration_seconds - current.remaining_seconds + (current.running ? sinceUpdate : 0));
+          const lossElapsed = current.phase === 'expired' && current.result_at != null ? Math.max(0, current.server_time - current.result_at + sinceUpdate) : 0;
+          const position = gameElapsed % duration + lossElapsed;
+          if (current.phase === 'expired' && position >= duration) {
+            element.currentTime = duration;
+            finishedLossMusic.current = true;
+            syncedGameMusic.current = musicKey;
+            musicSyncPending.current = false;
+            element.pause();
+            return;
+          }
+          element.currentTime = position % duration;
+        }
+        syncedGameMusic.current = musicKey;
+        musicSyncPending.current = false;
+        play();
+      };
+      if (element.readyState >= 1) onMetadata();
+      else element.addEventListener('loadedmetadata', onMetadata, { once: true });
+    } else play();
+    return () => {
+      cancelled = true;
+      musicSyncPending.current = false;
+      if (onMetadata) element.removeEventListener('loadedmetadata', onMetadata);
+      element.pause();
+    };
   }, [active, ready, muted, source]);
 
   useEffect(() => {
@@ -94,7 +139,7 @@ export function ControllerMusic({ state, previewing = false }: { state: RoomStat
         intro.volume = state.phase === 'pregame' && pregame_music ? playback.current.volume : 0;
         void intro.play().then(() => { if (state.phase !== 'pregame' || !pregame_music || playback.current.muted) intro.pause(); intro.volume = playback.current.volume * introGain.current; }).catch(() => {});
       }
-      if (!element || (!ready && state.phase !== 'pregame' && !playback.current.active) || !element.paused || element.ended || (state.phase === 'expired' && !state.result_video_playing && finishedLossMusic.current)) return;
+      if (!element || musicSyncPending.current || (!ready && state.phase !== 'pregame' && !playback.current.active) || !element.paused || element.ended || (state.phase === 'expired' && !state.result_video_playing && finishedLossMusic.current)) return;
       element.volume = playback.current.active && source ? playback.current.volume : 0;
       void element.play().then(() => {
         if (!playback.current.active || playback.current.muted || !source) element.pause();
