@@ -71,14 +71,14 @@ class GameState:
             self.result_video_playing = True
             self.bus.emit("game.view", view="result_video")
             return
-        self.change_view("digits" if self.game_view == "timer" else "timer")
+        self.change_view({"timer": "lights_off", "lights_off": "digits", "digits": "digits"}[self.game_view])
 
     def previous_view(self):
         if self.phase in ("solved", "expired"):
             self.result_video_playing = False
             self.bus.emit("game.view", view="result")
             return
-        self.change_view("timer")
+        self.change_view({"timer": "timer", "lights_off": "timer", "digits": "lights_off"}[self.game_view])
 
     def change_view(self, view):
         self.tick()

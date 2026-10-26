@@ -18,7 +18,7 @@ export function IntroSequence({ slide }: { slide: Slide }) {
     <h1>{movement ? lights ? 'Tasainen valo: pysykää alueella.' : 'Valonauha välkkyy: saatte liikkua.' : slide.title}</h1>
     {!movement && slide.body && <p className="intro-subtitle">{slide.body}</p>}
     <div className="intro-room" role="img" aria-label={movement ? lights ? 'Tasaisesti palava valonauha. Hahmo pysähtyy ja punainen X näyttää, ettei alueelta saa poistua.' : 'Himmeästi välkkyvä valonauha. Hahmo kävelee ulos ja vihreä merkki näyttää, että saa liikkua.' : 'Neljä pöytää ja kuusi henkilöä kunkin pöydän ääressä.'}>
-      <div className="intro-light-strip" aria-hidden="true"><span /></div>
+      <div className="intro-light-strip" aria-hidden="true"><i className="led-lights led-even" /><i className="led-lights led-odd" /></div>
       {Array.from({ length: 4 }, (_, table) => <div key={table} className={`seating-group intro-group-${table}`} style={{ '--table-delay': `${table * .12}s` } as CSSProperties}>
         <div className="seating-table"><span>PÖYTÄ</span><strong>0{table + 1}</strong></div>
         {Array.from({ length: 6 }, (_, seat) => <span key={seat} className={`seating-person seat-${seat} ${table === 2 && seat === 3 ? 'intro-runner-origin' : ''}`}><i /></span>)}

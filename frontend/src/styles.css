@@ -242,3 +242,30 @@
   font-variant-numeric:tabular-nums;
   letter-spacing:.01em;
 }
+
+/* Two independent groups of LEDs; in the moving phase they alternate. */
+.led-strip{position:absolute;inset:0;border:6px solid #35291c;border-radius:15px;box-shadow:0 0 14px #eaa04325;transition:border-color .55s,box-shadow .55s}
+.led-lights{position:absolute;inset:-6px;border:6px solid transparent;border-radius:inherit;background-origin:border-box;pointer-events:none}
+.led-even,.led-odd{background-image:radial-gradient(ellipse closest-side,#fff4c3 0 35%,#efb75e 53%,#9f632b 72%,transparent 100%),radial-gradient(ellipse closest-side,#fff4c3 0 35%,#efb75e 53%,#9f632b 72%,transparent 100%),radial-gradient(ellipse closest-side,#fff4c3 0 35%,#efb75e 53%,#9f632b 72%,transparent 100%),radial-gradient(ellipse closest-side,#fff4c3 0 35%,#efb75e 53%,#9f632b 72%,transparent 100%);background-size:36px 6px,36px 6px,6px 36px,6px 36px;background-repeat:repeat-x,repeat-x,repeat-y,repeat-y}
+.led-even{background-position:0 0,0 100%,0 0,100% 0}
+.led-odd{background-position:18px 0,18px 100%,0 18px,100% 18px}
+.intro-movement.lights-on .intro-light-strip,.intro-movement.lights-off .intro-light-strip{border-color:#35291c;box-shadow:0 0 14px #eaa04325;animation:none}
+.intro-light-strip .led-lights{inset:-3px;border-width:3px}
+.intro-movement.lights-off .led-even,.view-digits .led-even{animation:led-alternate 1.2s steps(1,end) infinite}
+.intro-movement.lights-off .led-odd,.view-digits .led-odd{animation:led-alternate 1.2s steps(1,end) -.6s infinite}
+.view-lights-off .led-lights{opacity:0;transition:opacity .55s}
+.view-lights-off .led-strip{border-color:#252321;box-shadow:none}
+.view-digits .timer-light-strip{opacity:1}
+@keyframes led-alternate{0%,100%{opacity:1}50%{opacity:0}}
+
+/* A forceful timeout reveal, while leaving the selected video unobstructed. */
+.result-screen.result-defeat:not(.has-video){background:#080909;overflow:hidden}
+.result-defeat:not(.has-video)::before,.result-defeat:not(.has-video)::after{content:'';position:absolute;left:0;right:0;height:50%;background:linear-gradient(180deg,#161817,#242322 46%,#0c0d0d);pointer-events:none}
+.result-defeat:not(.has-video)::before{top:0;border-bottom:2px solid #59403c;box-shadow:0 5px 22px #000;animation:shutter-top .8s cubic-bezier(.28,.65,.25,1) both}
+.result-defeat:not(.has-video)::after{bottom:0;border-top:2px solid #1c1d1c;box-shadow:0 -5px 22px #000;animation:shutter-bottom .8s cubic-bezier(.28,.65,.25,1) both}
+.result-defeat:not(.has-video) .result-copy{width:min(86vw,1080px);padding:clamp(24px,5vw,56px) 14px;border-top:2px solid #8e352e;border-bottom:2px solid #532421;background:linear-gradient(180deg,#100d0d,#191413 50%,#090a09);box-shadow:0 12px 40px #000c,inset 0 1px #ffffff18;animation:timeout-plate .7s .3s ease-out both}
+.result-defeat:not(.has-video) .result-copy h1{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:clamp(62px,13vw,180px);letter-spacing:.035em;line-height:1;color:#eadfda;text-shadow:0 3px 0 #000}
+@keyframes shutter-top{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes shutter-bottom{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes timeout-plate{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.intro-movement.lights-off .led-lights,.view-digits .led-lights{animation:none}.intro-movement.lights-off .led-odd,.view-digits .led-odd{opacity:.15}.result-defeat:not(.has-video)::before,.result-defeat:not(.has-video)::after,.result-defeat:not(.has-video) .result-copy{animation:none}}

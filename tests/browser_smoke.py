@@ -71,6 +71,8 @@ with sync_playwright() as p:
     expect(player.locator('.player-indicator.correct')).to_have_count(0)
     small_width=player.locator('.player-lamp').first.bounding_box()['width']
     dashboard.get_by_role('button',name='Seuraava näkymä',exact=True).click()
+    expect(player.locator('.view-lights-off')).to_be_visible()
+    dashboard.get_by_role('button',name='Seuraava näkymä',exact=True).click()
     expect(player.locator('.view-digits')).to_be_visible()
     expect(player.locator('.player-indicator.correct')).to_have_count(0)
     player.wait_for_timeout(700)

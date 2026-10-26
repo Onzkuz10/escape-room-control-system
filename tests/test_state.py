@@ -42,6 +42,8 @@ def test_correct_positions_and_latched_success(room):
     assert state.phase == 'running'
     assert state.snapshot(player=True)['correct'] == [False] * 4
     state.next_view()
+    assert state.game_view == 'lights_off' and state.phase == 'running'
+    state.next_view()
     assert state.phase == 'solved' and not state.running
     assert state.remaining == 595
     assert audio.cue == 'victory'
@@ -107,6 +109,7 @@ def test_camera_cannot_solve_with_a_held_but_currently_uncertain_digit(room):
     state.mode = 'camera'
     state.start()
     state.next_view()
+    state.next_view()
     state.set_digits([4,2,7,9],allow_solve=False)
     assert state.correct() == [True]*4
     assert state.phase == 'running'
@@ -151,9 +154,9 @@ def test_view_changes_keep_countdown_and_gate_automatic_solution(room):
     now[0] += 10
     state.next_view()
     assert state.remaining == 590 and state.running
+    assert state.game_view == 'lights_off'
     assert state.snapshot(player=True)['correct'] == [False] * 4
     assert state.snapshot()['correct'] == [True, True, True, False]
-    state.next_view()
     state.set_digits([4, 2, 7, 9])
     assert state.running and state.snapshot(player=True)['correct'] == [False] * 4
     state.next_view()
@@ -174,6 +177,9 @@ def test_previous_view_returns_to_timer_without_resetting_game(room):
     assert state.snapshot(player=True)['correct'] == [False] * 4
     state.pause()
     state.next_view()
+    state.next_view()
+    state.previous_view()
+    assert state.game_view == 'lights_off'
     state.previous_view()
     assert state.phase == 'paused' and state.game_view == 'timer'
 

@@ -44,7 +44,7 @@ Kaksoisnapsautus pelaajien näytössä pyytää selaimen fullscreen-tilaa. Safar
 
 ## Pre-game, diat ja taustamusiikki
 
-Pelin alussa isoa ajastinta ympäröi tasaisesti palava meripihkanvärinen valonauha. Kun kaikki neljä tehtävää (päiväkirja, ristikko, matikkatehtävä ja kirjatehtävä) on tarkistettu, ohjaaja painaa **Seuraava näkymä** ja asettaa samalla fyysisen valonauhan välkkymään. Näytön nauha himmenee ja välkkyy; numerot suurenevat 650 ms viiveen jälkeen. Välkkyvä nauha tarkoittaa, että pelaajat saavat liikkua. Fyysistä valonauhaa ohjataan erikseen; sovellus ei ohjaa valolaitetta.
+Pelin alussa ajastinta ympäröi tasaisesti palava valonauha. Ensimmäinen **Seuraava näkymä** sammuttaa näytön nauhan, mutta ajastin ja pienet numerot pysyvät paikoillaan. Toinen **Seuraava näkymä** suurentaa numerot ja nauhan valot välkkyvät vuorotellen. Tutoriaalissa välkkyvä nauha tarkoittaa, että pelaajat saavat liikkua. Fyysistä valonauhaa ohjataan erikseen; sovellus ei ohjaa valolaitetta.
 
 1. Avaa ohjauspaneelin **Pelin ohjaus → Diat, musiikki ja lopetusvideot**.
 2. Lisää omat musiikkitiedostot erikseen pre-gameen ja peliin (MP3, WAV, OGG tai M4A). Musiikkia ei ole mukana valmiina. Valitse äänenvoimakkuus ja tarvittaessa mykistys.
@@ -136,7 +136,7 @@ Toisen dian **Koodi ja nuoli pöydälle** -asettelu näyttää neljä tyhjää n
 
 Avaa ohjauskeskuksen sivupalkista **Peliasetukset**. Koodi ja peliaika tallentuvat **Tallenna peliasetukset** -painikkeesta; diojen ja median muutokset **Tallenna esitys** -painikkeesta. Näitä muokataan ennen peliä. Äänenvoimakkuus ja mykistys toimivat livesäätöinä kaikissa pelivaiheissa ja tallentuvat automaattisesti.
 
-**Numeropaikkojen kuvakkeet** antaa valita jokaiseen neljään paikkaan erikseen matematiikan, golfin, auton, lapion tai **Ei kuvaketta**. Kellotaulujen oletusjärjestys on matematiikka (3), golf (5), auto (9) ja lapio (0). Valinnat tallentuvat peliasetusten mukana ja kulkevat ZIP-viennissä/-tuonnissa. Kuvakkeet ovat alusta asti pieniä symboleja numeropaikkojen yllä ja kasvavat numeronäkymässä valonauhan himmetessä. Kuvake pysyy valitussa paikassa koodin tai kamerahavaintojen muuttuessa. Palauta oletusjärjestys **Palauta kellotaulujen kuvakkeet** -painikkeesta; painike ei muuta oikeaa koodia.
+**Numeropaikkojen kuvakkeet** antaa valita jokaiseen neljään paikkaan erikseen matematiikan, golfin, auton, lapion tai **Ei kuvaketta**. Kellotaulujen oletusjärjestys on matematiikka (3), golf (5), auto (9) ja lapio (0). Valinnat tallentuvat peliasetusten mukana ja kulkevat ZIP-viennissä/-tuonnissa. Kuvakkeet ovat alusta asti pieniä symboleja numeropaikkojen yllä ja kasvavat kolmannessa pelinäkymässä. Kuvake pysyy valitussa paikassa koodin tai kamerahavaintojen muuttuessa. Palauta oletusjärjestys **Palauta kellotaulujen kuvakkeet** -painikkeesta; painike ei muuta oikeaa koodia.
 
 **Vie asetukset ja mediat** lataa ZIP-paketin, joka sisältää myös esityksen käyttämät tiedostot. **Valitse asetuspaketti → Tuo asetukset** palauttaa paketin samalla tai toisella koneella. Tuonti korvaa asetukset ja palauttaa pelin valmiustilaan; se on käytettävissä ennen peliä. Paketin enimmäiskoko on 512 Mt ja yhden median 80 Mt. Tiedostot saavat tuonnissa uudet nimet, joten olemassa olevia medioita ei ylikirjoiteta.
 
