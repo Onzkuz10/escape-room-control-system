@@ -17,6 +17,7 @@ def client(monkeypatch, tmp_path):
     monkeypatch.setattr(main, 'bus', main.game.bus)
     monkeypatch.setattr(main, 'CONFIG_FILE', tmp_path / 'config.json')
     monkeypatch.setattr(main, 'MEDIA_DIR', tmp_path / 'media')
+    monkeypatch.setattr(main, 'LIBRARY_DIR', tmp_path / 'library')
     main.clients.clear()
     with TestClient(main.app) as c:
         yield c
@@ -482,3 +483,68 @@ def test_slot_icon_save_failure_keeps_previous_icons(client, monkeypatch):
     monkeypatch.setattr(main, 'save_config', fail)
     assert post(client, 'game_settings', {'slot_icons': [None] * 4}).status_code == 500
     assert main.game.config.slot_icons == before
+
+
+def test_folder_media_is_discovered_served_and_sound_selection_is_portable(client):
+    for directory, filename in [('music', 'Odotus.mp3'), ('videos', 'intro.mp4'), ('sound-effects', 'Lukko.wav')]:
+        path = main.LIBRARY_DIR / directory / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(filename.encode())
+    result = client.get('/api/media-library')
+    assert result.status_code == 200
+    files = result.json()['files']
+    assert len(files) == 3
+    for file in files:
+        assert client.get(file['url']).content == file['name'].encode()
+    music = next(f['url'] for f in files if f['category'] == 'music')
+    video = next(f['url'] for f in files if f['category'] == 'videos')
+    sound = next(f['url'] for f in files if f['category'] == 'sound-effects')
+    presentation = main.game.config.presentation.model_dump()
+    presentation.update(pregame_music=music, victory_video=video)
+    assert post(client, 'presentation', presentation).status_code == 200
+    assert post(client, 'victory_sound', sound).status_code == 200
+    assert main.load_config().presentation.victory_sound == sound
+    archive = client.get('/api/settings/export')
+    restored = client.post('/api/settings/import', content=archive.content)
+    assert restored.status_code == 200
+    selected = restored.json()['presentation']['victory_sound']
+    assert client.get(selected).content == b'Lukko.wav'
+    (main.LIBRARY_DIR / 'music' / 'new.mp3').write_bytes(b'new')
+    assert len(client.get('/api/media-library').json()['files']) == 4
+
+
+def test_stale_camera_frame_clears_held_digits(client, monkeypatch):
+    fake = SyntheticCamera(main.game.config)
+    fake.latest = lambda: (fake.frame.copy(), time.monotonic() - 3)
+    monkeypatch.setattr(main, 'camera', fake)
+    post(client, 'mode', 'camera')
+    main.game.set_digits([4, None, None, None], allow_solve=False)
+    time.sleep(.2)
+    assert client.get('/api/state').json()['digits'] == [None] * 4
+
+
+def test_folder_sound_scan_preserves_concurrent_live_audio_settings(client, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    path = main.LIBRARY_DIR / 'sound-effects' / 'click.mp3'
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b'ID3click')
+    sound = client.get('/api/media-library').json()['files'][0]['url']
+    original = main.media_library.scan
+    started, release = Event(), Event()
+    def delayed(root, cache):
+        started.set()
+        assert release.wait(3)
+        return original(root, cache)
+    monkeypatch.setattr(main.media_library, 'scan', delayed)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        selected = pool.submit(post, client, 'victory_sound', sound)
+        try:
+            assert started.wait(3)
+            assert post(client, 'audio_settings', {'volume': .23, 'muted': True}).status_code == 200
+        finally:
+            release.set()
+        assert selected.result(timeout=3).status_code == 200
+    assert main.game.config.presentation.volume == .23
+    assert main.game.config.presentation.muted
+    assert main.game.config.presentation.victory_sound == sound

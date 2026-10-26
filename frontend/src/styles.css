@@ -191,3 +191,5 @@
 
 .player-lamp>span{font-family:'SFMono-Regular',Consolas,monospace}
 .glass-result .drum-face>span{display:inline-block;transform-origin:center}
+
+.library-media-choice{display:flex;flex-direction:column;gap:7px;font-size:11px;color:var(--muted);max-width:100%}.library-media-choice select{max-width:100%;width:100%;padding:9px 10px;background:#111512;color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px}

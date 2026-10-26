@@ -31,7 +31,7 @@ class Slide(BaseModel):
 class SoundChoice(BaseModel):
     name: str = Field(max_length=80)
     file: str = Field(pattern=r"^/media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a)$")
-    duration_seconds: float = Field(default=4, ge=.1, le=30)
+    duration_seconds: float | None = Field(default=4, ge=.1, le=30)
 
 
 class Presentation(BaseModel):
@@ -45,7 +45,7 @@ class Presentation(BaseModel):
     game_music: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a)$")
     victory_video: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp4|webm)$")
     defeat_video: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp4|webm)$")
-    victory_sounds: list[SoundChoice] = Field(default_factory=list, max_length=4)
+    victory_sounds: list[SoundChoice] = Field(default_factory=list, max_length=64)
     victory_sound: str | None = Field(default=None, pattern=r"^/media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a)$")
     volume: float = Field(default=0.35, ge=0, le=1)
     muted: bool = False

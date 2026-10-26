@@ -21,10 +21,13 @@ from .recognition import DigitRecognizer, Stabilizer
 from .regions import crop_region
 from .state import GameState
 from .settings_bundle import export_bundle, import_bundle, media_paths, MAX_BUNDLE_SIZE
+from .media_library import MediaLibrary
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = Path(os.environ.get('ESCAPE_CONFIG', ROOT / 'runtime' / 'config.json'))
 MEDIA_DIR = Path(os.environ.get('ESCAPE_MEDIA', ROOT / 'runtime' / 'media'))
+LIBRARY_DIR = Path(os.environ.get('ESCAPE_LIBRARY', ROOT / 'media'))
+media_library = MediaLibrary()
 MEDIA_TYPES = {'.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
                '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm',
                '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
@@ -109,14 +112,19 @@ async def recognition_loop():
                         stable = [s.update(o, now) for s, o in zip(stabilizers, observations)]
                         fresh = all(o.digit is not None and o.digit == stabilized.digit for o, stabilized in zip(observations, stable))
                         game.set_digits([o.digit for o in stable], [o.confidence for o in stable], allow_solve=fresh)
-            elif frame is None and game.phase not in ('solved', 'expired'):
+                    else:
+                        game.set_digits([None] * 4, allow_solve=False)
+                        stabilizers = [Stabilizer() for _ in range(4)]
+            elif (frame is None or time.monotonic() - timestamp >= 2) and game.phase not in ('solved', 'expired'):
                 stabilizers = [Stabilizer() for _ in range(4)]
                 game.recognition_diagnostics, game.recognition_at = [None] * 4, None
+                game.set_digits([None] * 4, allow_solve=False)
         await asyncio.sleep(.05)
 
 
 @asynccontextmanager
 async def lifespan(app):
+    await asyncio.to_thread(media_library.scan, LIBRARY_DIR, MEDIA_DIR)
     tasks = [asyncio.create_task(broadcast_loop()), asyncio.create_task(recognition_loop())]
     yield
     for task in tasks:
@@ -147,6 +155,11 @@ def cameras():
     except Exception as exc:
         logging.exception('Camera discovery failed')
         raise HTTPException(503, 'Kameroiden haku epäonnistui. Tarkista asennus ja kameran käyttöoikeudet, ja yritä uudelleen.') from exc
+
+
+@app.get('/api/media-library')
+def media_catalog():
+    return media_library.scan(LIBRARY_DIR, MEDIA_DIR)
 
 
 @app.get('/api/settings/export')
@@ -216,7 +229,19 @@ async def command(cmd: Command):
             save_config(config)
             game.config = config
         elif action == 'victory_sound':
-            config = Config.model_validate({**game.config.model_dump(), 'presentation': {**game.config.presentation.model_dump(), 'victory_sound': value}})
+            presentation = game.config.presentation.model_dump()
+            if value and value not in [choice['file'] for choice in presentation['victory_sounds']]:
+                catalog = await asyncio.to_thread(media_library.scan, LIBRARY_DIR, MEDIA_DIR)
+                choice = next((item for item in catalog['files'] if item['category'] == 'sound-effects' and item['url'] == value), None)
+                if not choice:
+                    raise ValueError('Valitse lopetusääni tallennetuista vaihtoehdoista tai mediakansiosta.')
+                # Scanning yields to other commands; retain live volume/settings edits.
+                presentation = game.config.presentation.model_dump()
+                if value not in [item['file'] for item in presentation['victory_sounds']]:
+                    presentation['victory_sounds'].append({'name': Path(choice['name']).stem[:80], 'file': value,
+                                                           'duration_seconds': choice['duration_seconds']})
+            presentation['victory_sound'] = value
+            config = Config.model_validate({**game.config.model_dump(), 'presentation': presentation})
             if value and not (MEDIA_DIR / Path(value).name).is_file():
                 raise ValueError('Äänitiedosto puuttuu. Lisää ääni uudelleen.')
             save_config(config)

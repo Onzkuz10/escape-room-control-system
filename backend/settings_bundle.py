@@ -38,7 +38,7 @@ def import_bundle(data, media_dir):
         with ZipFile(BytesIO(data)) as archive:
             entries = archive.infolist()
             names = [entry.filename for entry in entries]
-            if len(names) > 64 or len(names) != len(set(names)) or 'config.json' not in names:
+            if len(names) > 128 or len(names) != len(set(names)) or 'config.json' not in names:
                 raise ValueError('Asetuspaketista puuttuu config.json tai tiedostonimet toistuvat.')
             if any(name != 'config.json' and not re.fullmatch(r'media/[a-f0-9]{32}\.(mp3|wav|ogg|m4a|mp4|webm|gif|png|jpg|jpeg|webp)', name) for name in names):
                 raise ValueError('Asetuspaketissa on tuntemattomia tiedostoja.')

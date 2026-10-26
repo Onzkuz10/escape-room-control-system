@@ -1,7 +1,7 @@
 export interface Region { x: number; y: number; width: number; height: number }
 export interface RoomEvent { id: number; type: string; at: string; payload: Record<string, unknown> }
 export interface Slide { title: string; body: string; animation: 'fade' | 'float' | 'pulse' | 'none'; layout?: 'text' | 'seating' | 'movement' | 'code'; locked?: boolean; media: string | null }
-export interface SoundChoice { name: string; file: string; duration_seconds: number }
+export interface SoundChoice { name: string; file: string; duration_seconds: number | null }
 export type SlotIconName = 'math' | 'golf' | 'car' | 'shovel';
 export interface Presentation { slides: Slide[]; pregame_music: string | null; game_music: string | null; victory_video: string | null; defeat_video: string | null; victory_sounds: SoundChoice[]; victory_sound: string | null; volume: number; muted: boolean }
 export interface RecognitionDiagnostic {

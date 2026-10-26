@@ -6,3 +6,9 @@ frontend/dist/
 frontend/*.tsbuildinfo
 runtime/
 *.log
+
+# Local project media; keep the folder structure and instructions in Git.
+media/**/*
+!media/**/
+!media/**/.gitkeep
+!media/README.md

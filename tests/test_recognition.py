@@ -70,11 +70,60 @@ def test_temporal_stability_and_signal_loss():
     assert s.update(Observation(4,95), .3).digit is None
     assert s.update(Observation(4,95), .7).digit == 4
     assert s.update(Observation(), .9).digit == 4
-    assert s.update(Observation(), 1.3).digit is None
-    assert s.update(Observation(4,95), 1.5).digit is None
-    assert s.update(Observation(4,95), 1.9).digit is None
-    assert s.update(Observation(4,95), 2.2).digit == 4
-    assert s.update(Observation(7,95), 2.3).digit is None
+    assert s.update(Observation(), 1.3).digit == 4
+    assert s.update(Observation(), 2.6).digit == 4
+    assert s.update(Observation(), 2.71).digit is None
+    assert s.update(Observation(4,95), 2.8).digit is None
+    assert s.update(Observation(4,95), 3.15).digit is None
+    assert s.update(Observation(4,95), 3.5).digit == 4
+    assert s.update(Observation(7,95), 3.6).digit == 4
+    assert s.update(Observation(7,95), 3.95).digit == 4
+    assert s.update(Observation(7,95), 4.3).digit == 7
+
+
+def test_covered_digit_returns_without_blinking_or_full_reacquisition():
+    s = Stabilizer()
+    for t in [0, .35, .7]: s.update(Observation(4, 95), t)
+    assert s.update(Observation(), 1.0).digit == 4
+    assert s.update(Observation(), 2.2).digit == 4
+    assert s.update(Observation(4, 92), 2.3).digit == 4
+    assert s.update(Observation(), 4.0).digit == 4
+    assert s.update(Observation(), 4.31).digit is None
+
+
+def test_brief_wrong_read_does_not_replace_the_number_or_extend_its_lifetime():
+    s = Stabilizer()
+    for t in [0, .35, .7]: s.update(Observation(4, 95), t)
+    assert s.update(Observation(7, 80), .9).digit == 4
+    assert s.update(Observation(8, 80), 1.3).digit == 4
+    assert s.update(Observation(7, 80), 2.0).digit == 4
+    assert s.update(Observation(8, 80), 2.71).digit is None
+
+
+def test_held_correct_digit_cannot_win_while_covered():
+    from backend.models import Config
+    from backend.events import EventBus
+    from backend.state import GameState
+    state = GameState(Config(), EventBus(), clock=lambda: 0.)
+    state.mode, state.phase = 'camera', 'running'
+    stabilizers = [Stabilizer() for _ in range(4)]
+    def observe(now, digits):
+        observations = [Observation(d, 95 if d is not None else None) for d in digits]
+        stable = [s.update(o, now) for s, o in zip(stabilizers, observations)]
+        fresh = all(o.digit is not None and o.digit == result.digit for o, result in zip(observations, stable))
+        state.set_digits([o.digit for o in stable], allow_solve=fresh)
+    for t in [0, .35, .7]: observe(t, [4, 2, 7, 9])
+    state.game_view = 'digits'
+    observe(.9, [None, 2, 7, 9])
+    assert state.digits == [4, 2, 7, 9] and state.phase == 'running'
+    observe(2.6, [None, 2, 7, 9])
+    assert state.digits == [4, 2, 7, 9] and state.phase == 'running'
+    observe(2.71, [None, 2, 7, 9])
+    assert state.digits[0] is None and state.phase == 'running'
+    for t in [2.8, 3.15]: observe(t, [4, 2, 7, 9])
+    assert state.phase == 'running'
+    observe(3.5, [4, 2, 7, 9])
+    assert state.phase == 'solved'
 
 
 def test_rejected_model_score_still_reaches_dashboard(monkeypatch):

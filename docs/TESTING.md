@@ -150,3 +150,15 @@ Fyysisen kameran laatu, valotus, macOS-käyttöoikeudet, paikallisverkon palomuu
 - 151 pytest-testiä läpäisty. Uudet API-testit kattavat tallennuksen, pelaajan WebSocketin, paikkakohtaisuuden havaintojen ja koodin muuttuessa, nollauksen, vanhat asetukset, tyhjät valinnat, ZIP-viennin/-tuonnin, virheelliset arvot ja tallennusvirheen. Pelinaikainen asetusten muutos hylätään.
 - Erillisellä portin 8012 testipalvelimella tarkistettu Chromessa oikeiden asetusvalintojen ja tallennuspainikkeen kautta kulkeva ketju API:in ja pelaajan WebSocket-näkymään. Tallentamattomat valinnat säilyivät tilapäivitysten yli. Tarkistettu yksittäinen tyhjä paikka, kaikki tyhjät, oletusten palautus, uudelleenlataus ja ratkaisun käsihyväksyntä.
 - Pelaajanäkymät 1280×720, 1024×600 ja 390×844 sekä asetukset 390 px leveydessä tarkistettu. Ei vaakavieritystä, eikä pelaajanäkymässä pystyvieritystä. Kuvake oli alussa enintään 44×25 px ja kasvoi numeronäkymässä. Vähennetty liike poistaa siirtymät. Ei selainvirheitä. TypeScript/Vite-build läpäisty.
+
+
+## Mediakansio ja lyhyen peiton sieto — 26.10.2026
+
+- Musiikin, videoiden ja äänitehosteiden rekursiivinen löytäminen, Unicode-nimet, tiedoston päivitys ja poisto, vanhan selainlatauksen uudelleenkäyttö, WAV-kesto ja virheelliset tiedostot testattu. Kansiosta valittu ääni, musiikki ja video kulkevat ZIP-paketissa ilman alkuperäistä kansiota.
+- Numeron kahden sekunnin muisti, peiton jälkeinen paluu ilman välähdystä, yksittäisen väärän havainnon sieto, uuden numeron vakautus ja muistin vanheneminen testattu. Muistissa olevasta oikeasta numerosta ei synny voittoa peiton aikana. Vanha kamerakuva tyhjentää näytön.
+- 160 pytest-testiä läpäisty, yksi symbolisen linkin testi ohitettu Windowsin käyttöoikeuksien vuoksi. TypeScript/Vite-build läpäisty.
+
+- Paikallinen palvelin käynnistetty uudella versiolla pelitilanne säilyttäen. Kaikki yhdeksän mediakansion tiedostoa löytyivät ilman virheitä ja niiden HTTP-osoitteet vastasivat 200. Aiemmin valitut musiikki ja lopetusääni säilyttivät URL-osoitteensa.
+- Musiikin, voitto-/häviövideoiden, ensimmäisen dian videon ja äänenvalintojen React-palvelinrenderöinti tarkistettu oikealla mediakatalogilla. Neljä aiempaa ääntä eivät kahdentuneet. Interaktiivinen selaintarkistus jäi tekemättä, koska tämän istunnon selainohjaus ei käynnistynyt kahdella yrityksellä.
+
+- Samanaikainen livesäätö ja kansiosta valittavan äänen skannaus testattu: äänen valinta ei palauta vanhaa äänenvoimakkuutta tai mykistystä.

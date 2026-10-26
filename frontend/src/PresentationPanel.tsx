@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AudioLines, ChevronLeft, ChevronRight, Pause, Play, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import type { Presentation, RoomState, SendCommand, Slide } from './types';
+import { MediaSelect, type LibraryMedia } from './MediaLibrary';
 
 export function PresentationPanel({ state, command, disabled, onReset, onSettings }: { state: RoomState; command: SendCommand; disabled: boolean; onReset: () => void; onSettings: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -28,7 +29,7 @@ export function PresentationPanel({ state, command, disabled, onReset, onSetting
   </section>;
 }
 
-export function PresentationEditor({ presentation, command, disabled }: { presentation: Presentation; command: SendCommand; disabled: boolean }) {
+export function PresentationEditor({ presentation, command, disabled, library = [] }: { presentation: Presentation; command: SendCommand; disabled: boolean; library?: LibraryMedia[] }) {
   const [draft, setDraft] = useState(presentation);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -62,11 +63,12 @@ export function PresentationEditor({ presentation, command, disabled }: { presen
   return <div className="presentation-editor">
     <p className="editor-note">Musiikki kuuluu ohjauskeskuksen laitteesta ja seuraa pelin vaihetta. Pidä ohjauskeskuksen välilehti auki. Lisää omat tiedostosi ja tallenna esitys. Asetukset ja media säilyvät palvelimella.</p>
     <fieldset disabled={locked}>
-      <div className="music-settings">{(['pregame_music', 'game_music'] as const).map(field => <div className="music-choice" key={field}><strong>{field === 'pregame_music' ? 'Pre-game-musiikki' : 'Pelin taustamusiikki'}</strong><span>{draft[field] ? 'Oma musiikkitiedosto valittu' : 'Ei musiikkia valittuna'}</span><label className="file-choice">{draft[field] ? 'Vaihda musiikki' : 'Lisää musiikki'}<input type="file" accept=".mp3,.wav,.ogg,.m4a" aria-label={field === 'pregame_music' ? 'Pre-game-musiikki' : 'Pelin taustamusiikki'} onChange={e => { void upload(e.target.files?.[0], url => setDraft(previous => ({ ...previous, [field]: url }))); e.target.value = ''; }} /></label>{draft[field] && <><audio controls preload="none" src={draft[field]} /><button className="text-button" onClick={() => setDraft(previous => ({ ...previous, [field]: null }))}>Poista musiikkivalinta</button></>}</div>)}</div>
+      <div className="music-settings">{(['pregame_music', 'game_music'] as const).map(field => <div className="music-choice" key={field}><strong>{field === 'pregame_music' ? 'Pre-game-musiikki' : 'Pelin taustamusiikki'}</strong><span>{draft[field] ? 'Oma musiikkitiedosto valittu' : 'Ei musiikkia valittuna'}</span><MediaSelect files={library} category="music" value={draft[field]} label={field === 'pregame_music' ? 'Pre-game-musiikki mediakansiosta' : 'Pelimusiikki mediakansiosta'} onChange={url => setDraft(previous => ({ ...previous, [field]: url }))} /><label className="file-choice">{draft[field] ? 'Vaihda musiikki' : 'Lisää musiikki'}<input type="file" accept=".mp3,.wav,.ogg,.m4a" aria-label={field === 'pregame_music' ? 'Pre-game-musiikki' : 'Pelin taustamusiikki'} onChange={e => { void upload(e.target.files?.[0], url => setDraft(previous => ({ ...previous, [field]: url }))); e.target.value = ''; }} /></label>{draft[field] && <><audio controls preload="none" src={draft[field]} /><button className="text-button" onClick={() => setDraft(previous => ({ ...previous, [field]: null }))}>Poista musiikkivalinta</button></>}</div>)}</div>
 
       <div className="music-settings result-video-settings">{(['victory_video', 'defeat_video'] as const).map(field => <div className="music-choice" key={field}>
         <strong>{field === 'victory_video' ? 'Voittovideo' : 'Häviövideo'}</strong>
         <span>{draft[field] ? 'Video valittu · käynnistyy Seuraava näkymä -painikkeesta' : 'Ei videota · näytetään lopputulos'}</span>
+        <MediaSelect files={library} category="videos" value={draft[field]} label={field === 'victory_video' ? 'Voittovideo mediakansiosta' : 'Häviövideo mediakansiosta'} onChange={url => setDraft(previous => ({ ...previous, [field]: url }))} />
         <label className="file-choice">{draft[field] ? 'Vaihda video' : 'Lisää video'}<input type="file" accept=".mp4,.webm" aria-label={field === 'victory_video' ? 'Voittovideo' : 'Häviövideo'} onChange={e => { void upload(e.target.files?.[0], url => setDraft(previous => ({ ...previous, [field]: url }))); e.target.value = ''; }} /></label>
         {draft[field] && <><video className="slide-media" src={draft[field]} controls muted playsInline preload="metadata" /><button className="text-button" onClick={() => setDraft(previous => ({ ...previous, [field]: null }))}>Poista video</button></>}
       </div>)}</div>
@@ -78,6 +80,7 @@ export function PresentationEditor({ presentation, command, disabled }: { presen
         <label>Tekstin animaatio<select value={slide.animation} onChange={e => updateSlide(index, { animation: e.target.value as Slide['animation'] })}><option value="fade">Häivytys</option><option value="float">Rauhallinen liike</option><option value="pulse">Hengitys</option><option value="none">Ei animaatiota</option></select></label>
         <label>Dian asettelu<select value={slide.layout ?? 'text'} onChange={e => updateSlide(index, { layout: e.target.value as Slide['layout'] })}><option value="text">Teksti ja media</option><option value="seating">Neljä pöytää ja animoidut paikat</option><option value="movement">Valonauhaohje (kiinteä pari pöytäohjeen kanssa)</option><option value="code">Koodi ja nuoli pöydälle</option></select></label>
         <label className="file-choice">{slide.media ? 'Vaihda animaatio tai kuva' : 'Lisää animaatio tai kuva'}<input type="file" accept=".gif,.mp4,.webm,.png,.jpg,.jpeg,.webp" aria-label={`Dian ${index + 1} animaatio`} onChange={e => { void upload(e.target.files?.[0], url => updateSlide(index, { media: url })); e.target.value = ''; }} /></label>
+        <MediaSelect files={library} category="videos" value={slide.media} label={`Dian ${index + 1} video mediakansiosta`} onChange={url => updateSlide(index, { media: url })} />
         </fieldset>{slide.locked && <p className="editor-note"><strong>{slide.title}</strong><br />Pöytä- ja valonauhaohje muodostavat kiinteän animaatioparin. Järjestys, grafiikka ja siirtymä on lukittu.</p>}
         {slide.media && <><SlideMedia key={slide.media} src={slide.media} title={slide.title} controls /><button className="text-button" onClick={() => updateSlide(index, { media: null })}>Poista dian media</button></>}
       </article>)}</div>

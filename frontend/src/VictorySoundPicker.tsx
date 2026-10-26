@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Pause, Play, Upload, VolumeX } from 'lucide-react';
 import type { RoomState, SendCommand, SoundChoice } from './types';
+import type { LibraryMedia } from './MediaLibrary';
 
-export function VictorySoundPicker({ state, command, disabled, onPreviewChange }: { state: RoomState; command: SendCommand; disabled: boolean; onPreviewChange: (value: boolean) => void }) {
+export function VictorySoundPicker({ state, command, disabled, onPreviewChange, library = [] }: { state: RoomState; command: SendCommand; disabled: boolean; onPreviewChange: (value: boolean) => void; library?: LibraryMedia[] }) {
   const audio = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const choices = state.presentation.victory_sounds ?? [];
+  const choices = [...new Map([
+    ...library.filter(file => file.category === 'sound-effects').map(file => ({ name: file.name, file: file.url, duration_seconds: file.duration_seconds })),
+    ...(state.presentation.victory_sounds ?? []),
+  ].map(choice => [choice.file, choice])).values()];
   useEffect(() => {
     if (audio.current) { audio.current.volume = state.presentation.volume; audio.current.muted = state.presentation.muted; }
   }, [state.presentation.volume, state.presentation.muted]);
@@ -47,17 +51,17 @@ export function VictorySoundPicker({ state, command, disabled, onPreviewChange }
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Äänen lisääminen epäonnistui.'); }
     finally { URL.revokeObjectURL(url); setBusy(false); }
   }
-  return <section className="panel victory-sound-picker"><div className="panel-heading"><h2>Mekaaninen lopetusääni</h2><span className="badge">{choices.length} / 4</span></div><div className="victory-sound-body">
+  return <section className="panel victory-sound-picker"><div className="panel-heading"><h2>Mekaaninen lopetusääni</h2><span className="badge">{choices.length} ääntä</span></div><div className="victory-sound-body">
     <p>Kuuntele vaihtoehdot ja valitse yksi. Valinta tallentuu heti. Pelissä lyhyt klikki toistuu jokaisen numeron loksahtaessa.</p>
     <audio ref={audio} onEnded={stop} onError={() => { stop(); setError('Ääntä ei voitu toistaa.'); }} />
     <div className="sound-choice-list">{choices.map(choice => <div className={`sound-choice ${state.presentation.victory_sound === choice.file ? 'is-selected' : ''}`} key={choice.file}>
       <button className="button secondary icon-only" aria-label={`${playing === choice.file ? 'Pysäytä' : 'Kuuntele'} ${choice.name}`} onClick={() => void preview(choice)} disabled={disabled}>{playing === choice.file ? <Pause size={16} /> : <Play size={16} />}</button>
-      <span><strong>{choice.name}</strong><small>{choice.duration_seconds.toFixed(1)} s</small></span>
+      <span><strong>{choice.name}</strong><small>{choice.duration_seconds == null ? 'Mediakansion äänitiedosto' : `${choice.duration_seconds.toFixed(1)} s`}</small></span>
       <button className="button secondary small" aria-pressed={state.presentation.victory_sound === choice.file} disabled={disabled || busy} onClick={() => void choose(choice.file)}>{state.presentation.victory_sound === choice.file ? <><Check size={14} />Valittu</> : 'Käytä tätä ääntä'}</button>
     </div>)}</div>
     {!choices.length && <p className="sound-empty">Äänivaihtoehtoja ei ole vielä lisätty.</p>}
     <div className="sound-picker-actions"><button className="button subtle small" aria-pressed={!state.presentation.victory_sound} disabled={disabled || busy} onClick={() => void choose(null)}><VolumeX size={14} />{state.presentation.victory_sound ? 'Poista lopetusääni käytöstä' : 'Äänetön valittu'}</button>
-      {choices.length < 4 && <label className="file-choice"><Upload size={14} />{busy ? 'Lisätään…' : 'Lisää äänivaihtoehto'}<input type="file" accept=".mp3,.wav,.ogg,.m4a" disabled={disabled || busy} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ''; }} /></label>}
+      {state.presentation.victory_sounds.length < 4 && <label className="file-choice"><Upload size={14} />{busy ? 'Lisätään…' : 'Lisää äänivaihtoehto'}<input type="file" accept=".mp3,.wav,.ogg,.m4a" disabled={disabled || busy} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ''; }} /></label>}
     </div>{state.presentation.muted && <p className="editor-note">Ääni on mykistetty. Poista mykistys livesäädöstä kuullaksesi esikuuntelun.</p>}{error && <p className="inline-error" role="alert">{error}</p>}
   </div></section>;
 }

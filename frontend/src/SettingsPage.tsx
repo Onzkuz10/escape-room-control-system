@@ -1,3 +1,4 @@
+import { useMediaLibrary } from './MediaLibrary';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, Save, Settings2, Upload } from 'lucide-react';
 import { PresentationEditor } from './PresentationPanel';
@@ -16,6 +17,7 @@ export function SettingsPage({ state, command, disabled, onBack, onPreviewChange
   const [importFile, setImportFile] = useState<File | null>(null);
   const [transfer, setTransfer] = useState<'export' | 'import' | null>(null);
   const locked = disabled || busy || !['ready', 'pregame'].includes(state.phase);
+  const library = useMediaLibrary();
   useEffect(() => { setCode(state.code); setMinutes(state.duration_seconds / 60); setApproval(state.require_human_approval); }, [state.code, state.duration_seconds, state.require_human_approval]);
   const savedSlotIcons = JSON.stringify(state.slot_icons ?? DEFAULT_SLOT_ICONS);
   useEffect(() => { setSlotIcons(JSON.parse(savedSlotIcons)); }, [savedSlotIcons]);
@@ -73,8 +75,10 @@ export function SettingsPage({ state, command, disabled, onBack, onPreviewChange
       </div>
       <button className="button primary" disabled={!dirty || !valid} onClick={() => void save()}><Save size={15} />{busy ? 'Tallennetaan…' : 'Tallenna peliasetukset'}</button><span className="settings-save-note">{dirty ? 'Tallentamattomia muutoksia' : 'Peliasetukset tallennettu'}</span></fieldset>
     </section>
-    <VictorySoundPicker state={state} command={command} disabled={disabled || busy} onPreviewChange={onPreviewChange} />
-    <section className="panel settings-presentation" id="settings-presentation"><div className="panel-heading"><h2>Diat, musiikki ja lopetusvideot</h2></div><PresentationEditor key={presentationKey} presentation={state.presentation} command={command} disabled={locked} /></section>
+    <p className="editor-note">Mediakansio: <code>media/</code> · {library.files.length} tiedostoa · lista päivittyy automaattisesti.</p>
+    {library.errors.map(message => <p className="error-banner" role="status" key={message}>{message}</p>)}
+    <VictorySoundPicker library={library.files} state={state} command={command} disabled={disabled || busy} onPreviewChange={onPreviewChange} />
+    <section className="panel settings-presentation" id="settings-presentation"><div className="panel-heading"><h2>Diat, musiikki ja lopetusvideot</h2></div><PresentationEditor library={library.files} key={presentationKey} presentation={state.presentation} command={command} disabled={locked} /></section>
     <section className="panel settings-transfer"><div className="panel-heading"><h2>Vienti ja tuonti</h2></div><div className="settings-transfer-body"><p>ZIP-paketti sisältää tallennetut peliasetukset, diat sekä niiden kuvat, videot ja musiikin. Sen voi siirtää myös toiselle tietokoneelle. Enimmäiskoko on 512 Mt.</p><button className="button secondary" disabled={disabled || busy || dirty} onClick={() => void exportSettings()}><Download size={15} />{transfer === 'export' ? 'Valmistellaan pakettia…' : 'Vie asetukset ja mediat'}</button>{dirty && <small>Tallenna peliasetukset ennen vientiä.</small>}
       <div className="settings-import"><label className="file-choice"><Upload size={14} />Valitse asetuspaketti<input type="file" accept=".zip" disabled={locked} onChange={event => { setImportFile(event.target.files?.[0] ?? null); event.target.value = ''; }} /></label>{importFile && <><span>{importFile.name}</span><p>Tuonti korvaa nykyiset asetukset ja palauttaa pelin valmiustilaan. Nykyiset mediat säilyvät palvelimella.</p><button className="button primary" disabled={locked} onClick={() => void importSettings()}>{transfer === 'import' ? 'Tuodaan asetuksia…' : 'Tuo asetukset'}</button></>}</div></div></section>
     {message && <p className="settings-success" role="status">{message}</p>}{failure && <p className="error-banner" role="alert">{failure}</p>}

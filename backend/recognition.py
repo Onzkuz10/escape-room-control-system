@@ -133,34 +133,33 @@ class DigitRecognizer:
 
 
 class Stabilizer:
-    """3 identical samples across >= .65 s; bad signal clears within .55 s.
-
-    Fresh observations are required after a long gap. No majority vote can retain
-    an old correct digit through a new contradictory observation.
-    """
-    def __init__(self):
+    """Keep a confirmed digit through short occlusions; require fresh input to win."""
+    def __init__(self, hold_seconds=2.0):
+        self.hold_seconds = hold_seconds
         self.candidate = None
         self.count = 0
         self.since = 0.
         self.last_valid = -100.
+        self.last_confirmed = -100.
         self.stable = None
         self.confidence = None
 
     def update(self, observation: Observation, now: float) -> Observation:
         digit = observation.digit
+        if now - self.last_confirmed >= self.hold_seconds:
+            self.stable, self.confidence = None, None
         if digit is None:
             self.candidate, self.count = None, 0
-            if now - self.last_valid >= .55:
-                self.stable, self.confidence = None, None
         else:
+            if digit == self.stable:
+                self.last_confirmed = now
+                self.confidence = observation.confidence
             if digit != self.candidate or now - self.last_valid > 1.5:
                 self.candidate, self.count, self.since = digit, 1, now
-                # Immediately remove a previously stable contradictory digit.
-                if digit != self.stable or now - self.last_valid > 1.5:
-                    self.stable, self.confidence = None, None
             else:
                 self.count += 1
             self.last_valid = now
             if self.count >= 3 and now - self.since >= .65:
                 self.stable, self.confidence = digit, observation.confidence
+                self.last_confirmed = now
         return Observation(self.stable, self.confidence)
