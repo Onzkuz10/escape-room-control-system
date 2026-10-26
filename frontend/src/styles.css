@@ -299,7 +299,7 @@
 .player-lamp>.digit-reel{display:block;height:1em;line-height:1;overflow:hidden}
 .digit-reel-track{display:flex;flex-direction:column}
 .digit-reel-track>span{display:block;height:1em;flex:none;line-height:1}
-.digit-reel.is-spinning .digit-reel-track{animation:digit-wheel var(--reel-duration) steps(var(--reel-steps),end) both}
+.digit-reel.is-spinning .digit-reel-track{will-change:transform;animation:digit-wheel var(--reel-duration) cubic-bezier(.16,.7,.25,1) both}
 @keyframes digit-wheel{from{transform:translateY(0)}to{transform:translateY(calc(-1em * var(--reel-steps)))}}
 @media(prefers-reduced-motion:reduce){.digit-reel.is-spinning .digit-reel-track{animation:none}}
 
