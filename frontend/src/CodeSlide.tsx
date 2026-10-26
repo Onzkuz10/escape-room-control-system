@@ -11,7 +11,7 @@ export function CodeSlide({ slide }: { slide: Slide }) {
         const index = Math.floor(Math.random() * 4);
         setDigits(previous => previous.map((digit, i) => i === index ? (digit + 1 + Math.floor(Math.random() * 9)) % 10 : digit));
         schedule();
-      }, 100 + Math.random() * 200);
+      }, 30 + Math.random() * 60);
     }
     schedule();
     return () => clearTimeout(timer);
