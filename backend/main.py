@@ -27,11 +27,35 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = Path(os.environ.get('ESCAPE_CONFIG', ROOT / 'runtime' / 'config.json'))
 MEDIA_DIR = Path(os.environ.get('ESCAPE_MEDIA', ROOT / 'runtime' / 'media'))
 LIBRARY_DIR = Path(os.environ.get('ESCAPE_LIBRARY', ROOT / 'media'))
+BUNDLED_SETTINGS = ROOT / 'config' / 'default_settings.json'
 media_library = MediaLibrary()
 MEDIA_TYPES = {'.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
                '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm',
                '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
 MAX_MEDIA_SIZE = 80 * 1024 * 1024
+
+
+def load_bundled_settings(settings_file: Path, library_dir: Path, media_dir: Path):
+    """Resolve portable media paths to this installation's local media URLs."""
+    settings = json.loads(settings_file.read_text(encoding='utf-8'))
+    presentation = settings['presentation']
+    files = media_library.scan(library_dir, media_dir)['files']
+    media_urls = {entry['path']: entry['url'] for entry in files}
+
+    def resolve(path):
+        if path is None:
+            return None
+        if path not in media_urls:
+            raise ValueError(f'Oletusasetusten mediatiedosto puuttuu: {path}')
+        return media_urls[path]
+
+    for field in ('pregame_music', 'game_music', 'victory_music', 'victory_video', 'defeat_video', 'victory_sound'):
+        presentation[field] = resolve(presentation.get(field))
+    for choice in presentation.get('victory_sounds', []):
+        choice['file'] = resolve(choice['file'])
+    for slide in presentation.get('slides', []):
+        slide['media'] = resolve(slide.get('media'))
+    return Config.model_validate(settings)
 
 
 def load_config():
@@ -44,6 +68,12 @@ def load_config():
             return Config.model_validate_json(text)
         except (ValueError, OSError):
             logging.exception('Invalid config; using safe defaults')
+            return Config()
+    if CONFIG_FILE.resolve() == (ROOT / 'runtime' / 'config.json').resolve() and BUNDLED_SETTINGS.is_file():
+        try:
+            return load_bundled_settings(BUNDLED_SETTINGS, LIBRARY_DIR, MEDIA_DIR)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise RuntimeError(f'Valmiiden peliasetusten lataus epäonnistui: {exc}') from exc
     return Config()
 
 

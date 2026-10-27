@@ -17,6 +17,8 @@ Jos päivität vanhaa asennusta, suorita `./scripts/setup.sh` uudelleen: kameral
 
 `setup.sh` luo projektikohtaisen `.venv`-ympäristön, asentaa Python- ja npm-riippuvuudet ja rakentaa käyttöliittymän. Se ei tee järjestelmälaajuisia pip-asennuksia. Jos `python3` osoittaa vanhaan Python-versioon, käytä ensin Homebrewn Pythonia PATHissa: `export PATH="$(brew --prefix python@3.12)/libexec/bin:$PATH"`.
 
+Uudessa asennuksessa nykyiset peliasetukset ovat valmiina: peliaika on 12 minuuttia ja koodi 3590. Valitut musiikit, äänet ja videot tulevat projektin mukana. Kameran valinta ja rajaukset kannattaa tarkistaa Macilla. Aiemmin tallennetut asetukset säilyvät, kun päivität olemassa olevan asennuksen.
+
 Avaa:
 
 - Dashboard: **http://localhost:8000**
@@ -47,7 +49,7 @@ Kaksoisnapsautus pelaajien näytössä pyytää selaimen fullscreen-tilaa. Safar
 Pelin alussa ajastinta ympäröi tasaisesti palava valonauha. Ensimmäinen **Seuraava näkymä** käynnistää valonauhan vuorottelevan välkkymisen; ajastin ja pienet numerot pysyvät paikoillaan. Toinen **Seuraava näkymä** suurentaa numerot ja valot jatkavat välkkymistä. Tutoriaalissa välkkyvä nauha tarkoittaa, että pelaajat saavat liikkua. Fyysistä valonauhaa ohjataan erikseen; sovellus ei ohjaa valolaitetta.
 
 1. Avaa ohjauspaneelin **Pelin ohjaus → Diat, musiikki ja lopetusvideot**.
-2. Lisää omat musiikkitiedostot erikseen pre-gameen ja peliin (MP3, WAV, OGG tai M4A). Musiikkia ei ole mukana valmiina. Valitse äänenvoimakkuus ja tarvittaessa mykistys.
+2. Valmiit musiikkitiedostot ovat mukana pre-gameen ja peliin. Voit myös valita omat tiedostosi (MP3, WAV, OGG tai M4A). Valitse äänenvoimakkuus ja tarvittaessa mykistys.
 3. Muokkaa diojen otsikoita ja tekstejä. Lisää, poista tai järjestä dioja. Jokaiseen diaan voi ladata oman GIF-, MP4- tai WebM-animaation tai kuvan. Valitse halutessasi myös tekstin animaatio. Videot toistuvat mykistettyinä taustamusiikin rinnalla. Enintään 20 diaa ja 80 Mt / tiedosto.
 4. Paina **Tallenna esitys**. Media säilyy `runtime/media/`-kansiossa ja asetukset `runtime/config.json`-tiedostossa. Dioja ja musiikkia voi muokata valmiustilassa ja pre-gamessa.
 5. Paina **Aloita pre-game näkymä**. Tavallinen ohjauskeskuksen painallus sallii äänentoiston. Musiikki kuuluu ohjauskeskuksen laitteen kaiuttimista ja toistuu silmukassa. Pelaajien näyttö toistaa vain kuvaa.
@@ -61,11 +63,11 @@ Ajastimen tauotus tauottaa myös pelimusiikin; jatkaminen jatkaa toistoa. Nollau
 
 ## Nopea testi ilman kameraa
 
-1. Avaa Dashboard ja Player Display rinnakkain. Oletuskoodi on **4279**, peliaika **60 minuuttia**.
+1. Avaa Dashboard ja Player Display rinnakkain. Uuden asennuksen koodi on **3590** ja peliaika **12 minuuttia**.
 2. Manuaalinen tila on oletuksena käytössä. Kameranäkymän laput ovat testiesikatselu.
 3. Aloita pre-game, vaihda dia ja paina **Käynnistä peli**. Molemmissa näkymissä sama aika laskee.
-4. Syötä testinumeroiksi **4**, **2**, **7** ja **9**. Pelaajille numerot näkyvät pieninä ilman oikeellisuuden vahvistusta ja ajastin jatkuu.
-5. Vaihda viimeiseksi numeroksi **8** ja paina **Seuraava näkymä**. Numerot suurenevat. Pelaajien numerot pysyvät neutraaleina; vain ohjauskeskus näyttää yksittäisten numeroiden oikeellisuuden. Korjaa viimeiseksi numeroksi **9**: huone ratkeaa automaattisesti.
+4. Syötä testinumeroiksi **3**, **5**, **9** ja **8**. Pelaajille numerot näkyvät pieninä ilman oikeellisuuden vahvistusta ja ajastin jatkuu.
+5. Paina **Seuraava näkymä** kahdesti, jolloin numerot suurenevat. Pelaajien numerot pysyvät neutraaleina; vain ohjauskeskus näyttää yksittäisten numeroiden oikeellisuuden. Korjaa viimeiseksi numeroksi **0**: huone ratkeaa automaattisesti.
 6. Nollaa huone. Nollauskysely suojaa käynnissä olevaa peliä vahingossa tapahtuvalta nollaukselta.
 7. **Varmistus ja hätävara → Hyväksy ratkaisu** päättää pelin voittoon ohjaajan vahvistuksen jälkeen myös ilman kamerahavaintoa. Painike on käytettävissä vain pelin ollessa käynnissä tai tauolla.
 

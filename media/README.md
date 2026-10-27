@@ -12,4 +12,4 @@ Valinta on aina käyttäjän päätettävissä: tiedoston lisääminen ei vaihda
 
 Yksi tiedosto voi olla enintään 80 Mt. Siirrä tiedosto kokonaan ennen kuin valitset sen. Tiedostot kopioidaan automaattisesti `runtime/media/`-välimuistiin, joten nykyinen valinta toimii myös lähdetiedoston poistamisen jälkeen. Muokattu tiedosto saa uuden valinnan; valitse se uudelleen ottaaksesi uuden version käyttöön. ZIP-vienti sisältää tallennetun esityksen käyttämät tiedostot.
 
-Kansion rakenne ja tämä ohje ovat Gitissä. Omat musiikit ja videot ovat paikallisia ja ne ohitetaan Gitissä; siirrä ne toiselle koneelle kopioimalla tämä kansio tai viemällä tallennetut asetukset ja mediat ZIP-pakettina.
+Valmiiksi valitut musiikit, äänitehosteet ja videot ovat projektin mukana Gitissä. Muut itse lisäämäsi tiedostot jäävät paikallisiksi; siirrä ne toiselle koneelle kopioimalla tämä kansio tai viemällä asetukset ja mediat ZIP-pakettina.

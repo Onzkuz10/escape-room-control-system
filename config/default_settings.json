@@ -1,0 +1,104 @@
+{
+  "code": "3590",
+  "duration_seconds": 720,
+  "regions": [
+    {
+      "x": 0.1631360520312545,
+      "y": 0.29571828981290854,
+      "width": 0.053838060513031916,
+      "height": 0.1492186040791254
+    },
+    {
+      "x": 0.27439530988628597,
+      "y": 0.3115391643552806,
+      "width": 0.052637195967376885,
+      "height": 0.1518629499690782
+    },
+    {
+      "x": 0.389120910028686,
+      "y": 0.34230902823750403,
+      "width": 0.06351637308999981,
+      "height": 0.14043460584927636
+    },
+    {
+      "x": 0.16214186225973312,
+      "y": 0.5304434856472454,
+      "width": 0.05307639366827253,
+      "height": 0.1263681687342845
+    }
+  ],
+  "camera_index": 0,
+  "require_human_approval": false,
+  "slot_icons": [
+    "math",
+    "golf",
+    "car",
+    "shovel"
+  ],
+  "presentation": {
+    "slides": [
+      {
+        "title": "Istukaa pöytien ääreen.",
+        "body": "Peli alkaa pian.",
+        "animation": "none",
+        "layout": "seating",
+        "locked": true,
+        "media": null
+      },
+      {
+        "title": "Seuratkaa valonauhaa.",
+        "body": "",
+        "animation": "none",
+        "layout": "movement",
+        "locked": true,
+        "media": null
+      },
+      {
+        "title": "Ratkaiskaa koodi.",
+        "body": "e",
+        "animation": "fade",
+        "layout": "code",
+        "locked": false,
+        "media": null
+      },
+      {
+        "title": "Ensimmäinen tehtävä jaetaan teille.",
+        "body": "Ajastin käynnistyy pian",
+        "animation": "fade",
+        "layout": "text",
+        "locked": false,
+        "media": null
+      }
+    ],
+    "pregame_music": "music/odotusmusiikki.mp3",
+    "game_music": "music/pelimusiikki.mp3",
+    "victory_music": "music/victory.mp3",
+    "victory_video": "videos/80860-573481992.mp4",
+    "defeat_video": "videos/99042-650523546_medium.mp4",
+    "victory_sounds": [
+      {
+        "name": "Vaihtoehto 1",
+        "file": "sound-effects/lopetus-1.wav",
+        "duration_seconds": 4.0
+      },
+      {
+        "name": "Vaihtoehto 2",
+        "file": "sound-effects/lopetus-2.wav",
+        "duration_seconds": 4.0
+      },
+      {
+        "name": "Vaihtoehto 3",
+        "file": "sound-effects/lopetus-3.wav",
+        "duration_seconds": 4.0
+      },
+      {
+        "name": "Vaihtoehto 4",
+        "file": "sound-effects/lopetus-4.wav",
+        "duration_seconds": 4.0
+      }
+    ],
+    "victory_sound": "sound-effects/lopetus-1.wav",
+    "volume": 1.0,
+    "muted": false
+  }
+}

@@ -1,9 +1,39 @@
 from pathlib import Path
 import hashlib
+import json
 import wave
 
 import pytest
 from backend.media_library import MediaLibrary
+
+
+def test_bundled_settings_resolve_media_on_new_install_and_preserve_saved_settings(tmp_path, monkeypatch):
+    from backend import main
+
+    root = Path(__file__).resolve().parent.parent
+    config_dir = tmp_path / 'runtime'
+    monkeypatch.setattr(main, 'ROOT', tmp_path)
+    monkeypatch.setattr(main, 'CONFIG_FILE', config_dir / 'config.json')
+    monkeypatch.setattr(main, 'BUNDLED_SETTINGS', root / 'config' / 'default_settings.json')
+    monkeypatch.setattr(main, 'LIBRARY_DIR', root / 'media')
+    monkeypatch.setattr(main, 'MEDIA_DIR', config_dir / 'media')
+
+    config = main.load_config()
+    assert config.duration_seconds == 720
+    assert config.code == '3590'
+    assert config.presentation.slides[3].title == 'Ensimmäinen tehtävä jaetaan teille.'
+    assert config.presentation.slides[3].body == 'Ajastin käynnistyy pian'
+    preset = json.loads(main.BUNDLED_SETTINGS.read_text(encoding='utf-8'))['presentation']
+    for key in ('pregame_music', 'game_music', 'victory_music', 'victory_video', 'defeat_video', 'victory_sound'):
+        cached = main.MEDIA_DIR / Path(getattr(config.presentation, key)).name
+        assert cached.read_bytes() == (main.LIBRARY_DIR / preset[key]).read_bytes()
+    for sound, source in zip(config.presentation.victory_sounds, preset['victory_sounds']):
+        assert (main.MEDIA_DIR / Path(sound.file).name).read_bytes() == (main.LIBRARY_DIR / source['file']).read_bytes()
+
+    config.duration_seconds = 300
+    config_dir.mkdir(exist_ok=True)
+    main.CONFIG_FILE.write_text(config.model_dump_json(), encoding='utf-8')
+    assert main.load_config().duration_seconds == 300
 
 
 def put(root, name, content=b'audio'):

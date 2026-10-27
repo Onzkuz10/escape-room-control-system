@@ -12,3 +12,15 @@ media/**/*
 !media/**/
 !media/**/.gitkeep
 !media/README.md
+!media/music/odotusmusiikki.mp3
+!media/music/pelimusiikki.mp3
+!media/music/victory.mp3
+!media/sound-effects/lopetus-1.wav
+!media/sound-effects/lopetus-2.wav
+!media/sound-effects/lopetus-3.wav
+!media/sound-effects/lopetus-4.wav
+!media/videos/80860-573481992.mp4
+!media/videos/99042-650523546_medium.mp4
+!media/videos/tiedosto-291af7b9.mp4
+!media/videos/tiedosto-35a395de.mp4
+!media/videos/tiedosto-b0a0f837.mp4
