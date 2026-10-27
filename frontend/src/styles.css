@@ -263,6 +263,8 @@
 .view-lights-off .led-lights,.view-digits .led-lights,.intro-movement.lights-off .led-lights{animation:none!important;opacity:0!important}
 .view-lights-off .led-strip,.view-digits .led-strip,.intro-movement.lights-off .intro-light-strip{border-color:#252321;box-shadow:none}
 .intro-movement.lights-on.lights-blinking .led-lights{animation:led-alternate .6s steps(1,end) infinite}
+.intro-movement.is-demonstrating.lights-blinking .intro-runner{animation-name:runner-exit}
+.intro-movement.lights-blinking .intro-verdict{background:#299961;box-shadow:0 0 25px #29996130}
 
 /* A forceful timeout reveal, while leaving the selected video unobstructed. */
 .result-screen.result-defeat:not(.has-video){background:radial-gradient(ellipse at 50% 48%,#541015 0%,#20070a 37%,#090405 76%);overflow:hidden}
