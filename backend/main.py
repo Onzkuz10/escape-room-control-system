@@ -88,6 +88,8 @@ def fixed_defeat_video():
 game = GameState(load_config(), bus, result_store=ResultStore(CONFIG_FILE.parent / 'game-results.json'))
 game.fixed_defeat_video = fixed_defeat_video()
 game.config.presentation.defeat_video = game.fixed_defeat_video
+game.fixed_victory_sound = next(item['url'] for item in media_library.scan(LIBRARY_DIR, MEDIA_DIR)['files'] if item['path'] == 'sound-effects/lopetus-1.wav')
+game.config.presentation.victory_sound = game.fixed_victory_sound
 camera = CameraService()
 clients: dict[WebSocket, bool] = {}
 
@@ -224,6 +226,8 @@ async def import_settings(request: Request):
         config, created = await asyncio.to_thread(import_bundle, bytes(payload), MEDIA_DIR)
         if getattr(game, 'fixed_defeat_video', None):
             config.presentation.defeat_video = game.fixed_defeat_video
+        if getattr(game, 'fixed_victory_sound', None):
+            config.presentation.victory_sound = game.fixed_victory_sound
         if any(slide.locked for slide in game.config.presentation.slides) and not any(slide.locked for slide in config.presentation.slides):
             raise ValueError('Asetuspaketin on sisällettävä lukittu pöytä- ja valonauhaohje.')
         if game.phase not in ('ready', 'pregame'):
@@ -269,6 +273,8 @@ async def command(cmd: Command):
             save_config(config)
             game.config = config
         elif action == 'victory_sound':
+            if getattr(game, 'fixed_victory_sound', None):
+                raise ValueError('Voiton äänitehoste on kiinteä.')
             presentation = game.config.presentation.model_dump()
             if value and value not in [choice['file'] for choice in presentation['victory_sounds']]:
                 catalog = await asyncio.to_thread(media_library.scan, LIBRARY_DIR, MEDIA_DIR)
@@ -303,6 +309,8 @@ async def command(cmd: Command):
             config = Config.model_validate({**game.config.model_dump(), 'presentation': value})
             if getattr(game, 'fixed_defeat_video', None):
                 config.presentation.defeat_video = game.fixed_defeat_video
+            if getattr(game, 'fixed_victory_sound', None):
+                config.presentation.victory_sound = game.fixed_victory_sound
             if any(slide.locked for slide in game.config.presentation.slides) and not any(slide.locked for slide in config.presentation.slides):
                 raise ValueError('Lukittua pöytä- ja valonauhaohjetta ei voi poistaa.')
             paths = media_paths(config)

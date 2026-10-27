@@ -199,6 +199,16 @@ def test_fixed_defeat_video_survives_presentation_update(client):
     assert post(client, 'presentation', presentation).json()['presentation']['defeat_video'] == fixed
 
 
+def test_fixed_victory_sound_cannot_be_changed(client):
+    sound = client.post('/api/media?filename=fixed.wav', content=b'sound').json()['url']
+    main.game.fixed_victory_sound = sound
+    main.game.config.presentation.victory_sound = sound
+    assert post(client, 'victory_sound', None).status_code == 400
+    presentation = main.game.config.presentation.model_dump()
+    presentation['victory_sound'] = None
+    assert post(client, 'presentation', presentation).json()['presentation']['victory_sound'] == sound
+
+
 def test_victory_soundscape_is_persisted_and_portable(client):
     sound = client.post('/api/media?filename=victory.mp3', content=b'victory-audio').json()['url']
     presentation = main.game.config.presentation.model_dump()
