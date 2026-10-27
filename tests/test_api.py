@@ -190,6 +190,15 @@ def test_media_and_presentation_validation(client, monkeypatch):
     assert post(client, 'presentation', {'slides': [{'media': '/media/../../config.json'}]}).status_code == 400
 
 
+def test_fixed_defeat_video_survives_presentation_update(client):
+    fixed = client.post('/api/media?filename=fixed.mp4', content=b'fixed').json()['url']
+    other = client.post('/api/media?filename=other.mp4', content=b'other').json()['url']
+    main.game.fixed_defeat_video = fixed
+    presentation = main.game.config.presentation.model_dump()
+    presentation['defeat_video'] = other
+    assert post(client, 'presentation', presentation).json()['presentation']['defeat_video'] == fixed
+
+
 def test_victory_soundscape_is_persisted_and_portable(client):
     sound = client.post('/api/media?filename=victory.mp3', content=b'victory-audio').json()['url']
     presentation = main.game.config.presentation.model_dump()

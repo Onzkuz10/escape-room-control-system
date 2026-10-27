@@ -80,7 +80,14 @@ def load_config():
 
 bus = EventBus()
 audio = AudioManager(bus)
+def fixed_defeat_video():
+    catalog = media_library.scan(LIBRARY_DIR, MEDIA_DIR)
+    return next(item['url'] for item in catalog['files'] if item['path'] == 'videos/haviovideo-C334.mp4')
+
+
 game = GameState(load_config(), bus, result_store=ResultStore(CONFIG_FILE.parent / 'game-results.json'))
+game.fixed_defeat_video = fixed_defeat_video()
+game.config.presentation.defeat_video = game.fixed_defeat_video
 camera = CameraService()
 clients: dict[WebSocket, bool] = {}
 
@@ -215,6 +222,8 @@ async def import_settings(request: Request):
     created = []
     try:
         config, created = await asyncio.to_thread(import_bundle, bytes(payload), MEDIA_DIR)
+        if getattr(game, 'fixed_defeat_video', None):
+            config.presentation.defeat_video = game.fixed_defeat_video
         if any(slide.locked for slide in game.config.presentation.slides) and not any(slide.locked for slide in config.presentation.slides):
             raise ValueError('Asetuspaketin on sisällettävä lukittu pöytä- ja valonauhaohje.')
         if game.phase not in ('ready', 'pregame'):
@@ -292,6 +301,8 @@ async def command(cmd: Command):
             if game.phase not in ('ready', 'pregame'):
                 raise ValueError('Muokkaa esitystä ennen pelin käynnistämistä.')
             config = Config.model_validate({**game.config.model_dump(), 'presentation': value})
+            if getattr(game, 'fixed_defeat_video', None):
+                config.presentation.defeat_video = game.fixed_defeat_video
             if any(slide.locked for slide in game.config.presentation.slides) and not any(slide.locked for slide in config.presentation.slides):
                 raise ValueError('Lukittua pöytä- ja valonauhaohjetta ei voi poistaa.')
             paths = media_paths(config)
