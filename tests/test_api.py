@@ -209,6 +209,24 @@ def test_fixed_victory_sound_cannot_be_changed(client):
     assert post(client, 'presentation', presentation).json()['presentation']['victory_sound'] == sound
 
 
+def test_use_defaults_restores_bundled_media_and_preserves_device_setup(client, monkeypatch):
+    monkeypatch.setattr(main, 'LIBRARY_DIR', main.ROOT / 'media')
+    main.game.config.camera_index = 7
+    regions = [r.model_dump() for r in main.game.config.regions]
+    post(client, 'code', '1111')
+    response = post(client, 'use_defaults')
+    assert response.status_code == 200
+    state = response.json()
+    assert state['code'] == '3590' and state['duration_seconds'] == 720
+    assert state['phase'] == 'ready' and state['remaining_seconds'] == 720
+    assert state['camera_index'] == 7 and state['regions'] == regions
+    assert main.load_config().presentation == main.game.config.presentation
+    for field in ('pregame_music', 'game_music', 'victory_music', 'victory_video', 'defeat_video', 'victory_sound'):
+        assert client.get(state['presentation'][field]).status_code == 200
+    post(client, 'start')
+    assert post(client, 'use_defaults').status_code == 400
+
+
 def test_victory_soundscape_is_persisted_and_portable(client):
     sound = client.post('/api/media?filename=victory.mp3', content=b'victory-audio').json()['url']
     presentation = main.game.config.presentation.model_dump()

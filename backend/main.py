@@ -254,7 +254,22 @@ async def import_settings(request: Request):
 async def command(cmd: Command):
     try:
         action, value = cmd.action, cmd.value
-        if action == 'start':
+        if action == 'use_defaults':
+            if game.phase in ('running', 'paused'):
+                raise ValueError('Nollaa käynnissä oleva peli ennen oletusasetusten käyttöönottoa.')
+            config = load_bundled_settings(BUNDLED_SETTINGS, LIBRARY_DIR, MEDIA_DIR)
+            config.regions = game.config.regions
+            config.camera_index = game.config.camera_index
+            if getattr(game, 'fixed_defeat_video', None):
+                config.presentation.defeat_video = game.fixed_defeat_video
+            if getattr(game, 'fixed_victory_sound', None):
+                config.presentation.victory_sound = game.fixed_victory_sound
+            save_config(config)
+            game.reset()
+            game.config = config
+            game.reset()
+            bus.emit('config.changed', field='defaults')
+        elif action == 'start':
             game.start()
         elif action == 'pregame':
             game.pregame()

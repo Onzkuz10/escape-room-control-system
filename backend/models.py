@@ -82,5 +82,5 @@ class Config(BaseModel):
 
 
 class Command(BaseModel):
-    action: Literal["start", "pregame", "next_slide", "previous_slide", "next_view", "previous_view", "presentation", "game_settings", "audio_settings", "victory_sound", "pause", "reset", "simulate", "approve_solution", "require_human_approval", "mode", "digits", "digit", "code", "duration", "regions", "camera_start", "camera_stop"]
+    action: Literal["use_defaults", "start", "pregame", "next_slide", "previous_slide", "next_view", "previous_view", "presentation", "game_settings", "audio_settings", "victory_sound", "pause", "reset", "simulate", "approve_solution", "require_human_approval", "mode", "digits", "digit", "code", "duration", "regions", "camera_start", "camera_stop"]
     value: object = None
