@@ -22,6 +22,7 @@ from .regions import crop_region
 from .state import GameState
 from .settings_bundle import export_bundle, import_bundle, media_paths, MAX_BUNDLE_SIZE
 from .media_library import MediaLibrary
+from .results import ResultStore
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = Path(os.environ.get('ESCAPE_CONFIG', ROOT / 'runtime' / 'config.json'))
@@ -79,7 +80,7 @@ def load_config():
 
 bus = EventBus()
 audio = AudioManager(bus)
-game = GameState(load_config(), bus)
+game = GameState(load_config(), bus, result_store=ResultStore(CONFIG_FILE.parent / 'game-results.json'))
 camera = CameraService()
 clients: dict[WebSocket, bool] = {}
 

@@ -1,5 +1,6 @@
 export interface Region { x: number; y: number; width: number; height: number }
 export interface RoomEvent { id: number; type: string; at: string; payload: Record<string, unknown> }
+export interface GameResult { started_at: number; ended_at: number; outcome: 'solved' | 'expired' | 'reset'; elapsed_seconds: number; remaining_seconds: number; duration_seconds: number }
 export interface Slide { title: string; body: string; animation: 'fade' | 'float' | 'pulse' | 'none'; layout?: 'text' | 'seating' | 'movement' | 'code'; locked?: boolean; media: string | null }
 export interface SoundChoice { name: string; file: string; duration_seconds: number | null }
 export type SlotIconName = 'math' | 'golf' | 'car' | 'shovel';
@@ -20,7 +21,7 @@ export interface RoomState {
   code: string; regions: Region[]; confidences: (number | null)[];
   recognition_diagnostics: (RecognitionDiagnostic | null)[]; recognition_at: number | null;
   camera: { status: 'off' | 'starting' | 'on' | 'error'; message: string; width: number; height: number; ocr_available: boolean };
-  camera_index: number; require_human_approval: boolean; events: RoomEvent[];
+  camera_index: number; require_human_approval: boolean; events: RoomEvent[]; results: GameResult[];
 }
 export type SendCommand = (action: string, value?: unknown) => Promise<boolean>;
 export function formatTime(seconds: number) {

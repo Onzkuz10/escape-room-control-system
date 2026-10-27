@@ -4,8 +4,10 @@ from .models import Config
 
 
 class GameState:
-    def __init__(self, config: Config, bus, clock=time.monotonic):
+    def __init__(self, config: Config, bus, clock=time.monotonic, result_store=None):
         self.config, self.bus, self.clock = config, bus, clock
+        self.result_store = result_store
+        self.result_recorded = False
         self.mode = "manual"
         self.digits = [None] * 4
         self.confidences = [None] * 4
@@ -43,6 +45,7 @@ class GameState:
                 self.running = False
                 self.phase = "expired"
                 self.result_at = time.time()
+                self.record_result('expired')
                 self.bus.emit("timer.expired")
         self.last_tick = now
 
@@ -107,6 +110,9 @@ class GameState:
             self.bus.emit("timer.paused")
 
     def reset(self):
+        self.tick()
+        if self.game_started_at is not None and not self.result_recorded:
+            self.record_result('reset')
         self.running, self.phase = False, "ready"
         self.slide_index = 0
         self.game_view = "timer"
@@ -114,6 +120,7 @@ class GameState:
         self.result_video_playing = False
         self.result_at = None
         self.game_started_at = None
+        self.result_recorded = False
         self.remaining = float(self.config.duration_seconds)
         self.last_tick = self.clock()
         self.digits, self.confidences = [None] * 4, [None] * 4
@@ -134,6 +141,7 @@ class GameState:
         if allow_solve and not self.config.require_human_approval and self.phase in ("running", "paused") and self.game_view == "digits" and all(self.correct()):
             self.running, self.phase = False, "solved"
             self.result_at = time.time()
+            self.record_result('solved')
             self.bus.emit("game.solved", remaining=round(self.remaining, 2))
 
     def approve_solution(self):
@@ -142,7 +150,18 @@ class GameState:
             raise ValueError("Ratkaisun voi hyväksyä vain käynnissä olevassa tai pysäytetyssä pelissä.")
         self.running, self.phase = False, "solved"
         self.result_at = time.time()
+        self.record_result('solved')
         self.bus.emit("game.solved", remaining=round(self.remaining, 2), approved_by_operator=True)
+
+    def record_result(self, outcome):
+        if self.result_recorded or self.game_started_at is None:
+            return
+        if self.result_store is not None:
+            self.result_store.add({'started_at': self.game_started_at, 'ended_at': self.result_at or time.time(),
+                                   'outcome': outcome, 'duration_seconds': self.config.duration_seconds,
+                                   'elapsed_seconds': round(max(0, self.config.duration_seconds - self.remaining), 2),
+                                   'remaining_seconds': round(self.remaining, 2)})
+        self.result_recorded = True
 
     def clear_detection(self):
         self.generation += 1
@@ -170,4 +189,5 @@ class GameState:
                           recognition_diagnostics=self.recognition_diagnostics, recognition_at=self.recognition_at,
                           camera_index=self.config.camera_index, events=list(self.bus.history))
             result['require_human_approval'] = self.config.require_human_approval
+            result['results'] = list(reversed(self.result_store.results)) if self.result_store else []
         return result
