@@ -6,18 +6,22 @@ import type { Slide } from './types';
 export function IntroSequence({ slide }: { slide: Slide }) {
   const movement = slide.layout === 'movement';
   const [lights, setLights] = useState(true);
+  const [blinking, setBlinking] = useState(false);
   const [demonstrating, setDemonstrating] = useState(false);
   useEffect(() => {
-    setLights(true); setDemonstrating(false);
+    setLights(true); setBlinking(false); setDemonstrating(false);
     if (!movement) return;
     const begin = setTimeout(() => setDemonstrating(true), 1100);
     const toggle = setInterval(() => setLights(previous => !previous), 6000);
-    return () => { clearTimeout(begin); clearInterval(toggle); };
+    const blinkStart = setTimeout(() => setBlinking(true), 4000);
+    const blinkEnd = setTimeout(() => setBlinking(false), 6000);
+    const blinkLoop = setInterval(() => { setBlinking(true); setTimeout(() => setBlinking(false), 2000); }, 12000);
+    return () => { clearTimeout(begin); clearInterval(toggle); clearTimeout(blinkStart); clearTimeout(blinkEnd); clearInterval(blinkLoop); };
   }, [movement]);
-  return <section className={`intro-sequence ${movement ? 'intro-movement' : 'intro-seated'} ${lights ? 'lights-on' : 'lights-off'} ${demonstrating ? 'is-demonstrating' : ''}`} aria-label={movement ? 'Valonauhan liikkumisohje' : 'Jakautuminen pöytiin'}>
-    <h1>{movement ? lights ? 'Tasainen valo: pysykää alueella.' : 'Valonauha välkkyy: saatte liikkua.' : slide.title}</h1>
+  return <section className={`intro-sequence ${movement ? 'intro-movement' : 'intro-seated'} ${lights ? 'lights-on' : 'lights-off'} ${blinking ? 'lights-blinking' : ''} ${demonstrating ? 'is-demonstrating' : ''}`} aria-label={movement ? 'Valonauhan liikkumisohje' : 'Jakautuminen pöytiin'}>
+    <h1>{movement ? lights ? 'Valonauha päällä: pysykää alueella.' : 'Kun valonauha sammuu, voitte liikkua.' : slide.title}</h1>
     {!movement && slide.body && <p className="intro-subtitle">{slide.body}</p>}
-    <div className="intro-room" role="img" aria-label={movement ? lights ? 'Tasaisesti palava valonauha. Hahmo pysähtyy ja punainen X näyttää, ettei alueelta saa poistua.' : 'Himmeästi välkkyvä valonauha. Hahmo kävelee ulos ja vihreä merkki näyttää, että saa liikkua.' : 'Neljä pöytää ja kuusi henkilöä kunkin pöydän ääressä.'}>
+    <div className="intro-room" role="img" aria-label={movement ? lights ? 'Valonauha palaa. Alueelta ei saa poistua.' : 'Valonauha on sammunut. Alueelta saa poistua.' : 'Neljä pöytää ja kuusi henkilöä kunkin pöydän ääressä.'}>
       <div className="intro-light-strip" aria-hidden="true"><i className="led-lights led-even" /><i className="led-lights led-odd" /></div>
       {Array.from({ length: 4 }, (_, table) => <div key={table} className={`seating-group intro-group-${table}`} style={{ '--table-delay': `${table * .12}s` } as CSSProperties}>
         <div className="seating-table"><span>PÖYTÄ</span><strong>0{table + 1}</strong></div>

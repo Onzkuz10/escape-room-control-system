@@ -54,6 +54,7 @@ def test_two_sockets_share_timer_digits_success_and_reconnect(client):
         assert client.get('/api/state').json()['phase'] == 'paused'
         assert post(client, 'next_view').status_code == 200
         assert post(client, 'next_view').status_code == 200
+        assert post(client, 'next_view').status_code == 200
         assert receive_phase(player,'solved')['correct'] == [True]*4
         assert receive_phase(dash,'solved')['phase'] == 'solved'
     with client.websocket_connect('/ws?role=player') as reconnected:
@@ -120,6 +121,7 @@ def test_camera_ocr_to_player_success_end_to_end(client, monkeypatch):
     assert post(client,'start').status_code == 200
     assert post(client,'next_view').status_code == 200
     assert post(client,'next_view').status_code == 200
+    assert post(client,'next_view').status_code == 200
     with client.websocket_connect('/ws?role=player') as player:
         player.receive_json()
         result = receive_phase(player,'solved')
@@ -169,6 +171,7 @@ def test_presentation_media_persistence_and_player_reconnection(client):
     assert post(client, 'next_slide').status_code == 400
     post(client, 'digits', [4, 2, 7, 9])
     assert client.get('/api/state').json()['phase'] == 'running'
+    assert post(client, 'next_view').json()['game_view'] == 'lights_flicker'
     assert post(client, 'next_view').json()['game_view'] == 'lights_off'
     assert post(client, 'next_view').json()['phase'] == 'solved'
 
@@ -232,11 +235,14 @@ def test_camera_discovery_failure_is_actionable(client, monkeypatch):
 def test_previous_view_api(client):
     assert post(client, 'previous_view').status_code == 400
     assert post(client, 'start').status_code == 200
+    assert post(client, 'next_view').json()['game_view'] == 'lights_flicker'
     assert post(client, 'next_view').json()['game_view'] == 'lights_off'
     assert post(client, 'next_view').json()['game_view'] == 'digits'
     response = post(client, 'previous_view')
     assert response.status_code == 200
     assert response.json()['game_view'] == 'lights_off'
+    response = post(client, 'previous_view')
+    assert response.json()['game_view'] == 'lights_flicker'
     response = post(client, 'previous_view')
     assert response.json()['game_view'] == 'timer'
     assert response.json()['running']
@@ -376,6 +382,7 @@ def test_import_persistence_failure_removes_new_media_without_overwriting_settin
 
 def test_partial_correctness_is_hidden_from_player_websocket(client):
     post(client, 'start')
+    post(client, 'next_view')
     post(client, 'next_view')
     post(client, 'next_view')
     post(client, 'digits', [4, 2, 7, 8])

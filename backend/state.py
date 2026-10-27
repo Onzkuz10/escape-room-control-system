@@ -14,6 +14,7 @@ class GameState:
         self.phase = "ready"
         self.slide_index = 0
         self.game_view = "timer"
+        self.flicker_deadline = None
         self.result_video_playing = False
         self.result_at = None
         self.game_started_at = None
@@ -28,6 +29,10 @@ class GameState:
 
     def tick(self):
         now = self.clock()
+        if self.game_view == 'lights_flicker' and self.flicker_deadline is not None and now >= self.flicker_deadline:
+            self.game_view = 'lights_off'
+            self.flicker_deadline = None
+            self.bus.emit('game.view', view=self.game_view)
         if self.running:
             previous = self.remaining
             self.remaining = max(0., self.remaining - (now - self.last_tick))
@@ -67,6 +72,7 @@ class GameState:
             self.bus.emit("timer.started")
 
     def next_view(self):
+        self.tick()
         if self.phase in ("solved", "expired"):
             video = self.config.presentation.victory_video if self.phase == "solved" else self.config.presentation.defeat_video
             if not video:
@@ -74,20 +80,22 @@ class GameState:
             self.result_video_playing = True
             self.bus.emit("game.view", view="result_video")
             return
-        self.change_view({"timer": "lights_off", "lights_off": "digits", "digits": "digits"}[self.game_view])
+        self.change_view({"timer": "lights_flicker", "lights_flicker": "lights_off", "lights_off": "digits", "digits": "digits"}[self.game_view])
 
     def previous_view(self):
+        self.tick()
         if self.phase in ("solved", "expired"):
             self.result_video_playing = False
             self.bus.emit("game.view", view="result")
             return
-        self.change_view({"timer": "timer", "lights_off": "timer", "digits": "lights_off"}[self.game_view])
+        self.change_view({"timer": "timer", "lights_flicker": "timer", "lights_off": "lights_flicker", "digits": "lights_off"}[self.game_view])
 
     def change_view(self, view):
         self.tick()
         if self.phase not in ("running", "paused"):
             raise ValueError("Näkymää voi vaihtaa pelin aikana.")
         self.game_view = view
+        self.flicker_deadline = self.clock() + 20 if view == 'lights_flicker' else None
         self.bus.emit("game.view", view=self.game_view)
         if self.mode == "manual":
             self.set_digits(self.digits)
@@ -102,6 +110,7 @@ class GameState:
         self.running, self.phase = False, "ready"
         self.slide_index = 0
         self.game_view = "timer"
+        self.flicker_deadline = None
         self.result_video_playing = False
         self.result_at = None
         self.game_started_at = None

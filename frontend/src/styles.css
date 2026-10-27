@@ -258,6 +258,12 @@
 .view-digits .timer-light-strip{opacity:1}
 @keyframes led-alternate{0%,100%{opacity:1}50%{opacity:0}}
 
+/* All bulbs blink together, then remain completely off. */
+.view-lights-flicker .led-lights{animation:led-alternate 1.2s steps(1,end) infinite}
+.view-lights-off .led-lights,.view-digits .led-lights,.intro-movement.lights-off .led-lights{animation:none!important;opacity:0!important}
+.view-lights-off .led-strip,.view-digits .led-strip,.intro-movement.lights-off .intro-light-strip{border-color:#252321;box-shadow:none}
+.intro-movement.lights-on.lights-blinking .led-lights{animation:led-alternate .6s steps(1,end) infinite}
+
 /* A forceful timeout reveal, while leaving the selected video unobstructed. */
 .result-screen.result-defeat:not(.has-video){background:radial-gradient(ellipse at 50% 48%,#541015 0%,#20070a 37%,#090405 76%);overflow:hidden}
 .result-defeat:not(.has-video)::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#060303 0%,transparent 18% 82%,#060303 100%),repeating-linear-gradient(90deg,transparent 0 79px,#e74a4010 80px 81px);opacity:.8}

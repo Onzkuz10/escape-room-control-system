@@ -57,7 +57,8 @@ def test_correct_positions_and_latched_success(room):
     assert state.phase == 'running'
     assert state.snapshot(player=True)['correct'] == [False] * 4
     state.next_view()
-    assert state.game_view == 'lights_off' and state.phase == 'running'
+    assert state.game_view == 'lights_flicker' and state.phase == 'running'
+    state.next_view()
     state.next_view()
     assert state.phase == 'solved' and not state.running
     assert state.remaining == 595
@@ -125,11 +126,27 @@ def test_camera_cannot_solve_with_a_held_but_currently_uncertain_digit(room):
     state.start()
     state.next_view()
     state.next_view()
+    state.next_view()
     state.set_digits([4,2,7,9],allow_solve=False)
     assert state.correct() == [True]*4
     assert state.phase == 'running'
     state.set_digits([4,2,7,9],allow_solve=True)
     assert state.phase == 'solved'
+
+
+def test_flicker_turns_off_after_twenty_seconds_even_when_paused(room):
+    state, now, *_ = room
+    state.start()
+    state.next_view()
+    state.pause()
+    now[0] += 19.9
+    state.tick()
+    assert state.game_view == 'lights_flicker'
+    now[0] += .1
+    state.tick()
+    assert state.game_view == 'lights_off'
+    state.next_view()
+    assert state.game_view == 'digits'
 
 
 def test_pregame_does_not_run_timer_or_solve_and_resets_slide(room):
@@ -169,11 +186,12 @@ def test_view_changes_keep_countdown_and_gate_automatic_solution(room):
     now[0] += 10
     state.next_view()
     assert state.remaining == 590 and state.running
-    assert state.game_view == 'lights_off'
+    assert state.game_view == 'lights_flicker'
     assert state.snapshot(player=True)['correct'] == [False] * 4
     assert state.snapshot()['correct'] == [True, True, True, False]
     state.set_digits([4, 2, 7, 9])
     assert state.running and state.snapshot(player=True)['correct'] == [False] * 4
+    state.next_view()
     state.next_view()
     assert state.phase == 'solved' and state.remaining == 590
 
@@ -194,7 +212,7 @@ def test_previous_view_returns_to_timer_without_resetting_game(room):
     state.next_view()
     state.next_view()
     state.previous_view()
-    assert state.game_view == 'lights_off'
+    assert state.game_view == 'lights_flicker'
     state.previous_view()
     assert state.phase == 'paused' and state.game_view == 'timer'
 
